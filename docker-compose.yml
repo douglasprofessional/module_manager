@@ -75,7 +75,7 @@ services:
     depends_on:
       - web
     ports:
-      - "8000:80"
+      - "8085:80"
     volumes:
       # Mantém apenas os volumes compartilhados de estáticos e mídia
       - estaticos:/app/staticfiles:ro
