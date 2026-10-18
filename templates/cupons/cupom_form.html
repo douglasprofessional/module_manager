@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Cadastro/edicao de cupom.
+
+Contexto (de ``coupon_create``/``coupon_update``): ``form`` (CouponForm),
+``titulo`` e ``cupom`` (instancia ou None).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'cupons/cupons.css' %}">{% endblock %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block subtitulo %}{% texto "cupons.cupom_form.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'cupons:list' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar aos cupons</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    <section class="cartao" aria-labelledby="c-form">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-form">{% texto "cupons.cupom_form.dados_titulo" %}</h2></header>
+
+      {% if form.non_field_errors %}
+        <div class="mensagem mensagem--error" role="alert">
+          {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form class="formulario" method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-grid">
+          {% include "cupons/_campo.html" with campo=form.name %}
+          {% include "cupons/_campo.html" with campo=form.code %}
+        </div>
+        <div class="form-grid form-grid--um">
+          {% include "cupons/_campo.html" with campo=form.description %}
+        </div>
+        <div class="form-grid">
+          {% include "cupons/_campo.html" with campo=form.discount_type %}
+          {% include "cupons/_campo.html" with campo=form.value %}
+          {% include "cupons/_campo.html" with campo=form.start_date %}
+          {% include "cupons/_campo.html" with campo=form.end_date %}
+        </div>
+        <div class="form-grid">
+          {% include "cupons/_campo_check.html" with campo=form.is_active %}
+          {% include "cupons/_campo_check.html" with campo=form.is_birthday %}
+        </div>
+
+        <div class="form-acoes">
+          <button type="submit" class="botao botao--primario">Salvar cupom</button>
+          <a class="botao botao--suave" href="{% url 'cupons:list' %}">Cancelar</a>
+        </div>
+      </form>
+    </section>
+
+    <section class="cartao cartao--destaque" aria-labelledby="c-ajuda">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-ajuda">{% texto "cupons.cupom_form.tipos_titulo" %}</h2></header>
+      <p class="destaque__texto"><strong>Percentual (%):</strong> abate uma porcentagem da mensalidade. Varios percentuais somam-se, sempre limitados a 100%.</p>
+      <p class="destaque__texto"><strong>Valor fixo (R$):</strong> abate um valor em reais da mensalidade.</p>
+      <p class="destaque__texto"><strong>Bonus / brinde:</strong> nao altera o valor a pagar; aparece na ficha do cliente e na cobranca.</p>
+      <p class="destaque__texto"><strong>Aniversario:</strong> ao marcar, o cupom e concedido automaticamente a todo cliente ativo que faz aniversario no mes.</p>
+      {% if cupom %}
+        <hr class="resumo-financeiro__divisor">
+        <p class="destaque__texto">Criado em {{ cupom.created_at|date:"d/m/Y H:i" }} · atualizado em {{ cupom.updated_at|date:"d/m/Y H:i" }}.</p>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

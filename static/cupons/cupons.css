@@ -1,0 +1,67 @@
+/* =========================================================================
+   Modulo de Cupons — estilos especificos (poucos; reutiliza o design system
+   de dashboard.css). Todas as cores vem das variaveis --... do tema.
+   ========================================================================= */
+
+/* Pastilhas de cupom aplicado (na tabela de clientes e na ficha) */
+.cupom-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cupom-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(124, 92, 255, .15);
+  color: var(--roxo-2);
+  white-space: nowrap;
+}
+.cupom-chip svg.icone { width: 13px; height: 13px; }
+.cupom-chip--auto { background: rgba(56, 189, 248, .15); color: var(--azul); }
+
+/* Coluna de valor do mes (tabela do painel) */
+.valor-mes { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.valor-mes__final { font-weight: 700; color: var(--texto); font-size: 14.5px; }
+.valor-mes__base { color: var(--texto-fraco); font-size: 12px; text-decoration: line-through; }
+.valor-mes__desconto { color: var(--verde); font-size: 12px; }
+.valor-mes__cheia { color: var(--texto-fraco); font-size: 12px; }
+
+/* Resumo financeiro (ficha do cliente e cobranca) */
+.resumo-financeiro__linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: 13.5px;
+  color: var(--texto-suave);
+}
+.resumo-financeiro__linha--desconto { color: var(--verde); }
+.resumo-financeiro__divisor { border: none; border-top: 1px solid var(--borda); margin: 10px 0; }
+.resumo-financeiro__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.resumo-financeiro__total-rotulo { font-weight: 700; color: var(--texto); }
+.resumo-financeiro__total-valor { font-size: 22px; font-weight: 700; color: var(--roxo-2); }
+
+/* Celula monetaria alinhada a direita nas tabelas */
+.celula-valor { text-align: right; white-space: nowrap; }
+.celula-desconto { color: var(--verde); }
+
+/* Botoes de acao em linha nas tabelas */
+.acoes-linha { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.acoes-linha form { display: inline; margin: 0; }
+
+/* Aviso de desconto limitado */
+.aviso-cap {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--raio-sm);
+  border: 1px solid rgba(251, 191, 36, .4);
+  background: rgba(251, 191, 36, .10);
+  color: var(--amarelo);
+  font-size: 12.5px;
+}

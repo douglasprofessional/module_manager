@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Lista de quadros do Kanban (adendo docs/SPEC_MODULOS.md — MÓDULO 1).
+
+Contexto (de ``QuadroListView``): ``quadros`` (queryset anotado com
+``num_colunas``, ``num_cartoes`` e ``num_atrasados``). Cada quadro vira um card
+do design system, com contadores e botão "Abrir".
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'kanban/kanban.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "kanban.lista.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "kanban.lista.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'kanban:novo_quadro' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Novo quadro</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  {% if quadros %}
+    <div class="kanban-quadros">
+      {% for quadro in quadros %}
+        <section class="cartao kanban-quadro-card">
+          <header class="kanban-quadro-card__topo">
+            <span class="kanban-quadro-card__icone" aria-hidden="true">
+              {% include "parciais/_icones.html" with nome_icone="kanban" only %}
+            </span>
+            <div class="kanban-quadro-card__cabecalho">
+              <h2 class="cartao__titulo">{{ quadro.nome }}</h2>
+              {% if quadro.descricao %}<p class="kanban-quadro-card__descricao">{{ quadro.descricao }}</p>{% endif %}
+            </div>
+          </header>
+
+          <ul class="kanban-quadro-card__stats">
+            <li><span class="kanban-quadro-card__num">{{ quadro.num_colunas }}</span> colunas</li>
+            <li><span class="kanban-quadro-card__num">{{ quadro.num_cartoes }}</span> cartões</li>
+            <li>
+              {% if quadro.num_atrasados %}
+                <span class="badge badge--vermelho">{{ quadro.num_atrasados }} atrasado{{ quadro.num_atrasados|pluralize }}</span>
+              {% else %}
+                <span class="badge badge--verde">Em dia</span>
+              {% endif %}
+            </li>
+          </ul>
+
+          <a class="botao botao--suave botao--bloco" href="{% url 'kanban:quadro' quadro.pk %}">Abrir</a>
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="cartao kanban-vazio">
+      <span class="kanban-vazio__icone" aria-hidden="true">
+        {% include "parciais/_icones.html" with nome_icone="kanban" only %}
+      </span>
+      <h2 class="kanban-vazio__titulo">{% texto "kanban.lista.vazio_titulo" %}</h2>
+      <p class="kanban-vazio__texto">Crie seu primeiro quadro para começar a organizar as tarefas da equipe.</p>
+      <a class="botao botao--primario" href="{% url 'kanban:novo_quadro' %}">Criar quadro</a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

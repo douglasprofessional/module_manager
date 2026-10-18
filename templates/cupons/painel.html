@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Painel do modulo de Cupons (antiga core.dashboard): KPIs de cupons/clientes/receita
++ tabela paginada de clientes com filtros e seletor de mes.
+
+Contexto (de ``painel``): ``metricas`` (dashboard_metrics), ``linhas`` (cliente +
+calculo + cupons do mes), ``pagina``, ``meses``, ``cupons``, ``filtros`` e
+``referencia_label``.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'cupons/cupons.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "cupons.painel.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "cupons.painel.subtitulo" referencia=referencia_label total=total_resultados plural=total_resultados|pluralize %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'cupons:customer_create' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Novo cliente</span>
+  </a>
+  <a class="botao botao--suave" href="{% url 'cupons:create' %}">
+    {% include "parciais/_icones.html" with nome_icone="cupom" only %}
+    <span>Novo cupom</span>
+  </a>
+  <a class="botao botao--suave" href="{% url 'cupons:charge_list' %}?mes={{ filtros.mes }}">
+    {% include "parciais/_icones.html" with nome_icone="tarefa" only %}
+    <span>Cobrancas do mes</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# ---------------------------------------------------- KPIs ---------- #}
+  <div class="cartoes-resumo">
+    <a class="cartao-stat" href="{% url 'cupons:list' %}">
+      <span class="cartao-stat__icone" style="background: rgba(124, 92, 255, .15); color: #7c5cff;">
+        {% include "parciais/_icones.html" with nome_icone="cupom" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.cupons_criados }}</span>
+        <span class="cartao-stat__rotulo">Cupons criados</span>
+        <span class="cartao-stat__detalhe">{{ metricas.cupons_disponiveis }} disponivel(is)</span>
+      </span>
+    </a>
+    <a class="cartao-stat" href="{% url 'cupons:list' %}?situacao=aniversario">
+      <span class="cartao-stat__icone" style="background: rgba(56, 189, 248, .15); color: #38bdf8;">
+        {% include "parciais/_icones.html" with nome_icone="tarefa" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.cupons_ativos }}</span>
+        <span class="cartao-stat__rotulo">Cupons ativos no mes</span>
+        <span class="cartao-stat__detalhe">{{ metricas.aplicacoes_no_mes }} aplicacao(oes)</span>
+      </span>
+    </a>
+    <a class="cartao-stat" href="{% url 'cupons:cliente_lista' %}">
+      <span class="cartao-stat__icone" style="background: rgba(52, 211, 153, .15); color: #34d399;">
+        {% include "parciais/_icones.html" with nome_icone="grupo" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.clientes.ativos }}</span>
+        <span class="cartao-stat__rotulo">Clientes ativos</span>
+        <span class="cartao-stat__detalhe">{{ metricas.clientes.inadimplentes }} inadimplente(s)</span>
+      </span>
+    </a>
+    <span class="cartao-stat">
+      <span class="cartao-stat__icone" style="background: rgba(251, 191, 36, .15); color: #fbbf24;">
+        {% include "parciais/_icones.html" with nome_icone="calendario" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.clientes.aniversariantes }}</span>
+        <span class="cartao-stat__rotulo">Aniversariantes</span>
+        <span class="cartao-stat__detalhe">Cupom automatico do mes</span>
+      </span>
+    </span>
+    <span class="cartao-stat">
+      <span class="cartao-stat__icone" style="background: rgba(251, 191, 36, .15); color: #fbbf24;">
+        {% include "parciais/_icones.html" with nome_icone="relatorios" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.descontos|moeda }}</span>
+        <span class="cartao-stat__rotulo">Descontos do mes</span>
+        <span class="cartao-stat__detalhe">Base: {{ metricas.faturamento_bruto|moeda }}</span>
+      </span>
+    </span>
+    <a class="cartao-stat" href="{% url 'cupons:charge_list' %}?mes={{ filtros.mes }}">
+      <span class="cartao-stat__icone" style="background: rgba(52, 211, 153, .15); color: #34d399;">
+        {% include "parciais/_icones.html" with nome_icone="relatorios" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ metricas.faturamento_liquido|moeda }}</span>
+        <span class="cartao-stat__rotulo">Previsto no mes</span>
+        <span class="cartao-stat__detalhe">{{ metricas.cobrancas_em_aberto }} cobranca(s) em aberto</span>
+      </span>
+    </a>
+  </div>
+
+  {# ------------------------------------------------- Filtros + tabela - #}
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho cartao__cabecalho--filtros">
+      <h2 class="cartao__titulo">{% texto "cupons.painel.clientes_titulo" %}</h2>
+
+      <form class="filtros" method="get" role="search" aria-label="Filtrar clientes">
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="f-q">Buscar</label>
+          <input class="campo" type="search" id="f-q" name="q" value="{{ filtros.q }}"
+                 placeholder="Nome, e-mail ou telefone">
+        </div>
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="f-status">Situacao</label>
+          <select class="campo" id="f-status" name="status">
+            <option value="">Todas</option>
+            <option value="ativo" {% if filtros.status == 'ativo' %}selected{% endif %}>Ativos</option>
+            <option value="inativo" {% if filtros.status == 'inativo' %}selected{% endif %}>Inativos</option>
+            <option value="inadimplente" {% if filtros.status == 'inadimplente' %}selected{% endif %}>Inadimplentes</option>
+          </select>
+        </div>
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="f-cupom">Cupom</label>
+          <select class="campo" id="f-cupom" name="cupom">
+            <option value="">Todos</option>
+            {% for cupom in cupons %}
+              <option value="{{ cupom.pk }}" {% if filtros.cupom == cupom.pk|stringformat:"s" %}selected{% endif %}>{{ cupom.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="f-aplicacao">Aplicacao</label>
+          <select class="campo" id="f-aplicacao" name="aplicacao">
+            <option value="">Qualquer</option>
+            <option value="atual" {% if filtros.aplicacao == 'atual' %}selected{% endif %}>Aplicado neste mes</option>
+            <option value="historico" {% if filtros.aplicacao == 'historico' %}selected{% endif %}>Ja aplicado (historico)</option>
+            <option value="sem" {% if filtros.aplicacao == 'sem' %}selected{% endif %}>Sem cupom no mes</option>
+          </select>
+        </div>
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="f-mes">Mes</label>
+          <select class="campo" id="f-mes" name="mes">
+            {% for opcao in meses %}
+              <option value="{{ opcao.value }}" {% if filtros.mes == opcao.value %}selected{% endif %}>{{ opcao.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filtros__acoes">
+          <button type="submit" class="botao botao--primario">Filtrar</button>
+          <a class="botao botao--suave" href="{% url 'cupons:painel' %}">Limpar</a>
+        </div>
+      </form>
+    </header>
+
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th scope="col">Cliente</th>
+            <th scope="col">Aniversario</th>
+            <th scope="col">Situacao</th>
+            <th scope="col">Cupons em {{ referencia_label }}</th>
+            <th scope="col">Valor do mes</th>
+            <th scope="col">NF</th>
+            <th scope="col">Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in linhas %}
+            <tr>
+              <td>
+                <a class="celula-empresa__nome" href="{% url 'cupons:customer_detail' linha.cliente.pk %}">{{ linha.cliente.full_name }}</a>
+                <div class="lista-dados__extra">{{ linha.cliente.email }}</div>
+                <div class="lista-dados__extra">{{ linha.cliente.phone }}</div>
+              </td>
+              <td>
+                {{ linha.cliente.birthday_display }}
+                {% if linha.cliente.birth_date.month == referencia.month %}
+                  <span class="badge badge--azul">Aniversariante</span>
+                {% endif %}
+              </td>
+              <td><span class="tag-status {{ linha.cliente.status_badge_class }}">{{ linha.cliente.status_label }}</span></td>
+              <td>
+                {% if linha.cupons %}
+                  <div class="cupom-chips">
+                    {% for aplicacao in linha.cupons %}
+                      <span class="cupom-chip {% if aplicacao.is_automatic %}cupom-chip--auto{% endif %}"
+                            title="{{ aplicacao.coupon.get_discount_type_display }} · {{ aplicacao.period_display }}">
+                        {% include "parciais/_icones.html" with nome_icone="cupom" only %}
+                        {{ aplicacao.coupon.name }} ({{ aplicacao.coupon.value_display }})
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="texto-fraco">Nenhum cupom neste mes</span>
+                {% endif %}
+              </td>
+              <td class="celula-valor">
+                <span class="valor-mes">
+                  <span class="valor-mes__final">{{ linha.calculo.final_amount|moeda }}</span>
+                  {% if linha.calculo.has_discount %}
+                    <span class="valor-mes__base">{{ linha.calculo.base_amount|moeda }}</span>
+                    <span class="valor-mes__desconto">-{{ linha.calculo.total_discount|moeda }}</span>
+                  {% else %}
+                    <span class="valor-mes__cheia">Mensalidade cheia</span>
+                  {% endif %}
+                </span>
+              </td>
+              <td>
+                {% if linha.cliente.monthly_invoice %}
+                  <span class="badge badge--verde">NF</span>
+                {% else %}
+                  <span class="texto-fraco">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="acoes-linha">
+                  <a class="botao botao--suave botao--pequeno" href="{% url 'cupons:customer_update' linha.cliente.pk %}">Editar</a>
+                  <form method="post" action="{% url 'cupons:customer_toggle_active' linha.cliente.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="botao botao--suave botao--pequeno">
+                      {% if linha.cliente.is_active %}Desativar{% else %}Ativar{% endif %}
+                    </button>
+                  </form>
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="tabela__vazio">Nenhum cliente encontrado com os filtros atuais.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pagina.has_other_pages %}
+      <nav class="paginacao" aria-label="Paginacao">
+        {% if pagina.has_previous %}
+          <a class="paginacao__link" href="?q={{ filtros.q }}&amp;status={{ filtros.status }}&amp;cupom={{ filtros.cupom }}&amp;aplicacao={{ filtros.aplicacao }}&amp;mes={{ filtros.mes }}&amp;page={{ pagina.previous_page_number }}">Anterior</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Anterior</span>
+        {% endif %}
+        <span class="paginacao__atual">Pagina {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}
+          <a class="paginacao__link" href="?q={{ filtros.q }}&amp;status={{ filtros.status }}&amp;cupom={{ filtros.cupom }}&amp;aplicacao={{ filtros.aplicacao }}&amp;mes={{ filtros.mes }}&amp;page={{ pagina.next_page_number }}">Proxima</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Proxima</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

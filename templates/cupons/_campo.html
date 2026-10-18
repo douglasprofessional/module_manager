@@ -1,0 +1,12 @@
+{% comment %}
+Campo de formulario generico (texto, e-mail, numero, data, select, textarea).
+O widget ja recebe class="campo" pelo CamposDesignMixin do forms.py.
+
+Uso: {% include "cupons/_campo.html" with campo=form.name %}
+{% endcomment %}
+<div class="campo-grupo">
+  <label class="rotulo" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  {{ campo }}
+  {% if campo.help_text %}<p class="ajuda-campo">{{ campo.help_text }}</p>{% endif %}
+  {% for erro in campo.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+</div>

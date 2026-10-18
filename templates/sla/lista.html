@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Lista paginada de chamados de SLA (adendo docs/SPEC_MODULOS.md — MÓDULO 2).
+
+Contexto (de ``ChamadoListView``): ``chamados`` (page do queryset/lista),
+``page_obj`` / ``is_paginated``, ``opcoes_status`` (choices), ``opcoes_situacao``
+((slug, rótulo)), ``filtro_status``/``filtro_situacao`` e ``querystring_filtros``.
+{% endcomment %}
+
+{% block titulo %}{% texto "sla.lista.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "sla.lista.subtitulo" %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'sla/sla.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'sla:novo_chamado' %}">Novo chamado</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho cartao__cabecalho--filtros">
+      <h2 class="cartao__titulo">{% texto "sla.lista.chamados_titulo" %}</h2>
+
+      <form class="filtros" method="get" role="search" aria-label="Filtrar chamados">
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-status">Status</label>
+          <select class="campo__entrada campo__entrada--select" id="filtro-status" name="status">
+            <option value="">Todos</option>
+            {% for valor, rotulo in opcoes_status %}
+              <option value="{{ valor }}" {% if valor == filtro_status %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-situacao">Situação do SLA</label>
+          <select class="campo__entrada campo__entrada--select" id="filtro-situacao" name="situacao">
+            <option value="">Todas</option>
+            {% for slug, rotulo in opcoes_situacao %}
+              <option value="{{ slug }}" {% if slug == filtro_situacao %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filtros__acoes">
+          <button type="submit" class="botao botao--primario">Filtrar</button>
+          <a class="botao botao--suave" href="{% url 'sla:lista' %}">Limpar</a>
+        </div>
+      </form>
+    </header>
+
+    <div class="tabela-rolagem">
+      <table class="tabela tabela--sla">
+        <thead>
+          <tr>
+            <th scope="col">Chamado</th>
+            <th scope="col">Política</th>
+            <th scope="col">Prioridade</th>
+            <th scope="col">Status</th>
+            <th scope="col">Situação do SLA</th>
+            <th scope="col">Prazo / restante</th>
+            <th scope="col">Responsável</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for chamado in chamados %}
+            <tr>
+              <td>
+                <a class="celula-chamado" href="{% url 'sla:detalhe' chamado.pk %}">
+                  <span class="celula-chamado__titulo">{{ chamado.titulo }}</span>
+                  {% if chamado.solicitante %}
+                    <span class="celula-chamado__solicitante">{{ chamado.solicitante }}</span>
+                  {% endif %}
+                </a>
+              </td>
+              <td>{{ chamado.politica.nome }}</td>
+              <td><span class="badge {{ chamado.classe_badge_prioridade }}">{{ chamado.get_prioridade_display }}</span></td>
+              <td><span class="tag-status tag-status--{{ chamado.status }}">{{ chamado.get_status_display }}</span></td>
+              <td><span class="tag-status {{ chamado.classe_situacao_resolucao }}">{{ chamado.rotulo_situacao_resolucao }}</span></td>
+              <td class="celula-prazo">{{ chamado.tempo_restante_texto }}</td>
+              <td>
+                {% if chamado.responsavel %}
+                  <span class="celula-responsavel">
+                    <span class="avatar avatar--sla" aria-hidden="true">{{ chamado.responsavel.get_full_name|iniciais }}</span>
+                    <span class="celula-responsavel__nome">{{ chamado.nome_responsavel }}</span>
+                  </span>
+                {% else %}
+                  <span class="texto-fraco">Sem responsável</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="tabela__vazio">Nenhum chamado corresponde aos filtros selecionados.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="paginacao" aria-label="Paginação">
+        {% if page_obj.has_previous %}
+          <a class="paginacao__link" href="?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Anterior</span>
+        {% endif %}
+
+        <span class="paginacao__atual">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a class="paginacao__link" href="?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Próxima</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Próxima</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

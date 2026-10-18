@@ -1,0 +1,13 @@
+{% comment %}
+Campo booleano (checkbox) no padrao do design system (.campo-check).
+
+Uso: {% include "cupons/_campo_check.html" with campo=form.is_active %}
+{% endcomment %}
+<div class="campo-grupo">
+  <label class="campo-check">
+    {{ campo }}
+    <span>{{ campo.label }}</span>
+  </label>
+  {% if campo.help_text %}<p class="ajuda-campo">{{ campo.help_text }}</p>{% endif %}
+  {% for erro in campo.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+</div>

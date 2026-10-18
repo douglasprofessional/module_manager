@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Nova busca (seção 13 da SPEC).
+
+Contexto (da view ``nova_busca``): ``form`` (BuscaForm) e ``buscas`` (últimas
+buscas). A execução é um POST/CSRF separado para ``prospeccao:executar_busca``.
+A conexão é opcional: sem ela, a busca usa a chave salva no Painel do módulo.
+Textos: ``apps/nucleo/textos.py`` (prospeccao.nova_busca).
+{% endcomment %}
+
+{% block titulo %}{% texto "prospeccao.nova_busca.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "prospeccao.nova_busca.subtitulo" %}{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--um-dois">
+
+    {# Formulário de nova busca #}
+    <section class="cartao" aria-labelledby="b-nova">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="b-nova">{% texto "prospeccao.nova_busca.configurar_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'prospeccao:nova_busca' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.conexao.id_for_label }}">{{ form.conexao.label }}</label>
+          {{ form.conexao }}
+          {% if form.conexao.help_text %}<p class="campo__ajuda">{{ form.conexao.help_text }}</p>{% endif %}
+          {% for erro in form.conexao.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.termo.id_for_label }}">{{ form.termo.label }}</label>
+          {{ form.termo }}
+          {% for erro in form.termo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.localizacao.id_for_label }}">{{ form.localizacao.label }}</label>
+          {{ form.localizacao }}
+          {% for erro in form.localizacao.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.raio_metros.id_for_label }}">{{ form.raio_metros.label }}</label>
+          {{ form.raio_metros }}
+          {% for erro in form.raio_metros.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">{% texto "prospeccao.nova_busca.criar" %}</button>
+      </form>
+    </section>
+
+    {# Buscas recentes #}
+    <section class="cartao cartao--tabela" aria-labelledby="b-lista">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="b-lista">{% texto "prospeccao.nova_busca.recentes_titulo" %}</h2></header>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_termo" %}</th>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_localizacao" %}</th>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_raio" %}</th>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_status" %}</th>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_resultados" %}</th>
+              <th scope="col">{% texto "prospeccao.nova_busca.col_acao" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for busca in buscas %}
+              <tr>
+                <td>{{ busca.termo }}</td>
+                <td>{{ busca.localizacao }}</td>
+                <td>{{ busca.raio_metros }} m</td>
+                <td><span class="tag-status tag-status--{{ busca.status }}">{{ busca.get_status_display }}</span></td>
+                <td>{{ busca.total_resultados }}</td>
+                <td>
+                  <form method="post" action="{% url 'prospeccao:executar_busca' busca.pk %}" class="linha-acao">
+                    {% csrf_token %}
+                    <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.nova_busca.executar" %}</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="tabela__vazio">{% texto "prospeccao.nova_busca.vazio" %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

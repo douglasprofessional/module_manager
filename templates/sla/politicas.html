@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Políticas de SLA (adendo docs/SPEC_MODULOS.md — MÓDULO 2).
+
+Contexto (da view ``politicas``): ``form`` (PoliticaForm) e ``politicas``
+(queryset anotado com ``total_chamados``).
+{% endcomment %}
+
+{% block titulo %}{% texto "sla.politicas.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "sla.politicas.subtitulo" %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'sla/sla.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'sla:lista' %}">Ver chamados</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--um-dois">
+
+    {# Formulário de nova política #}
+    <section class="cartao" aria-labelledby="p-nova">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="p-nova">{% texto "sla.politicas.nova_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'sla:politicas' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% for erro in form.nome.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+          {{ form.descricao }}
+          {% for erro in form.descricao.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.prazo_resposta_horas.id_for_label }}">{{ form.prazo_resposta_horas.label }}</label>
+          {{ form.prazo_resposta_horas }}
+          {% for erro in form.prazo_resposta_horas.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.prazo_resolucao_horas.id_for_label }}">{{ form.prazo_resolucao_horas.label }}</label>
+          {{ form.prazo_resolucao_horas }}
+          {% for erro in form.prazo_resolucao_horas.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <label class="campo-check">
+          {{ form.ativo }}
+          <span>{{ form.ativo.label }}</span>
+        </label>
+        {% for erro in form.ativo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+
+        <button type="submit" class="botao botao--primario botao--bloco">Criar política</button>
+      </form>
+    </section>
+
+    {# Políticas existentes #}
+    <section class="cartao cartao--tabela" aria-labelledby="p-lista">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="p-lista">{% texto "sla.politicas.cadastradas_titulo" %}</h2></header>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">Política</th>
+              <th scope="col">Resposta</th>
+              <th scope="col">Resolução</th>
+              <th scope="col">Chamados</th>
+              <th scope="col">Ativa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for politica in politicas %}
+              <tr>
+                <td>
+                  <span class="celula-chamado__titulo">{{ politica.nome }}</span>
+                  {% if politica.descricao %}<span class="celula-chamado__solicitante">{{ politica.descricao }}</span>{% endif %}
+                </td>
+                <td>{{ politica.prazo_resposta_horas }} h</td>
+                <td>{{ politica.prazo_resolucao_horas }} h</td>
+                <td>{{ politica.total_chamados }}</td>
+                <td>
+                  {% if politica.ativo %}
+                    <span class="pastilha pastilha--sim">Sim</span>
+                  {% else %}
+                    <span class="pastilha pastilha--neutro">Não</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="tabela__vazio">Nenhuma política cadastrada ainda.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

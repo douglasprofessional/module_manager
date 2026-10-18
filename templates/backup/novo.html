@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Novo backup (adendo 2 — MÓDULO 4).
+
+Contexto (da view ``novo``): ``form`` (BackupForm) e ``modulos`` (allowlist).
+
+O toggle que mostra/oculta o "Módulo" (para tipo=módulo) e "Incluir mídia"
+(para tipo=completo) é feito com CSS puro (``:has()`` sobre os rádios de tipo),
+sem JavaScript inline — respeitando a CSP ``script-src 'self'``. Sem suporte a
+``:has()``, todos os campos aparecem e o backend valida a combinação.
+{% endcomment %}
+
+{% block titulo %}{% texto "backup.novo.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "backup.novo.subtitulo" %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'backup/backup.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'backup:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    {# Formulário de novo backup #}
+    <section class="cartao" aria-labelledby="b-novo">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="b-novo">{% texto "backup.novo.dados_titulo" %}</h2></header>
+
+      <form class="formulario form-backup" method="post" action="{% url 'backup:novo' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <fieldset class="campo campo-tipo">
+          <legend class="campo__rotulo">{{ form.tipo.label }}</legend>
+          <div class="opcoes-tipo">{{ form.tipo }}</div>
+          {% for erro in form.tipo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </fieldset>
+
+        <div class="campo campo-escopo">
+          <label class="campo__rotulo" for="{{ form.escopo.id_for_label }}">{{ form.escopo.label }}</label>
+          {{ form.escopo }}
+          <p class="campo__ajuda">Aplicável ao backup por módulo (fixture restaurável com loaddata).</p>
+          {% for erro in form.escopo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo campo-media">
+          <label class="campo-check">
+            {{ form.incluir_media }}
+            <span>{{ form.incluir_media.label }}</span>
+          </label>
+          <p class="campo__ajuda">Aplicável ao backup completo; inclui os uploads em MEDIA_ROOT.</p>
+          {% for erro in form.incluir_media.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">Gerar backup</button>
+      </form>
+    </section>
+
+    {# Explicação dos tipos de backup #}
+    <section class="cartao cartao--destaque" aria-labelledby="b-dica">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="b-dica">{% texto "backup.novo.tipos_titulo" %}</h2></header>
+      <p class="destaque__texto">
+        <strong>Módulo</strong>: exporta os dados de um app como <em>fixture</em>
+        Django (<code>.json.gz</code>). Restaure com
+        <code>manage.py loaddata</code> após descompactar.
+      </p>
+      <p class="destaque__texto">
+        <strong>Completo</strong>: gera um <code>.zip</code> com o fixture de
+        todos os módulos, o dump nativo do banco e, se marcado, a pasta de mídia.
+      </p>
+      <p class="destaque__texto">
+        <strong>Migração EasyPanel</strong>: pacote pronto para transferir a
+        plataforma a outro servidor EasyPanel — inclui o dump do banco, a mídia,
+        o fixture, um <code>.env.exemplo</code> e o passo a passo de restauração
+        (<code>MIGRACAO-EASYPANEL.md</code>).
+      </p>
+      <p class="destaque__texto">
+        A restauração não é feita pela interface (por segurança). Os arquivos
+        ficam num diretório privado; o download passa por uma view protegida.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% load static nucleo_extras %}
+<!doctype html>
+<html lang="pt-br" data-tema="{{ tema_atual|default:'claro' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  {% texto "geral.marca_padrao" as marca_padrao %}<title>{% texto "erros.400.titulo" %} · {{ site_nome|default:marca_padrao }}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Staatliches&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body class="tela-erro">
+  <main class="erro" role="main">
+    <p class="erro__codigo">400</p>
+    <h1 class="erro__titulo">{% texto "erros.400.titulo" %}</h1>
+    <p class="erro__texto">{% texto "erros.400.texto" %}</p>
+    <a class="botao botao--primario" href="/">{% texto "geral.voltar_dashboard" %}</a>
+  </main>
+</body>
+</html>

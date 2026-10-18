@@ -1,0 +1,31 @@
+modulos — pasta de imagens estáticas
+=======================================
+
+Coloque aqui os arquivos de imagem servidos estaticamente (via WhiteNoise em
+produção; em DEBUG o Django serve direto). Use caminhos com {% static %} nos
+templates — nunca hardcode URLs.
+
+Arquivos esperados pelo layout (Agente F):
+
+- favicon.svg   (JÁ INCLUÍDO)
+    Ícone da aba do navegador. Referenciado em base.html, contas/login.html e
+    nas páginas de erro via:  <link rel="icon" href="{% static 'img/favicon.svg' %}">
+    Substitua pelo ícone oficial quando houver. Prefira SVG (nítido e leve);
+    se usar PNG, ajuste o "type" do <link>.
+
+- logo.svg   (OPCIONAL)
+    A marca "modulos" hoje é desenhada por HTML/CSS (ícone circular roxo com
+    glifo de radar + texto). Se preferir um logo em arquivo, salve como
+    logo.svg aqui e troque o bloco ".marca" em templates/parciais/_sidebar.html
+    (e o ".login__marca" em contas/login.html) por:
+        <img src="{% static 'img/logo.svg' %}" alt="modulos" class="marca__img">
+
+Observações de segurança/CSP (seção 9 da SPEC):
+- A CSP permite  img-src 'self' data:  — sirva imagens localmente (sem CDN).
+- Não referencie fontes/ícones externos; todos os ícones do layout são SVG
+  inline (templates/parciais/_icones.html), sem dependências de rede.
+
+Formatos recomendados:
+- Ícones/ilustrações vetoriais: .svg
+- Fotos/bitmaps: .png ou .webp otimizados
+- Favicon: favicon.svg (moderno) e, se necessário, favicon.ico para navegadores antigos.

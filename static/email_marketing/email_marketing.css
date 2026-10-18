@@ -1,0 +1,112 @@
+/* =========================================================================
+   modulos — Módulo Marketing por E-mail (adendo 3 — MÓDULO 5).
+
+   Usa as variáveis globais do design system (--roxo, --superficie, --borda,
+   --raio, etc.). Não redefine tokens; apenas acrescenta pequenos ajustes que o
+   layout base não tem: a nota de marcadores, os contadores da campanha, a
+   prévia do corpo e a página pública de descadastro. Sem libs/CDN.
+   ========================================================================= */
+
+/* Texto auxiliar esmaecido. */
+.em-fraco { color: var(--texto-fraco); font-size: 13px; }
+
+/* --------------------------------------------------------- Nota explicativa */
+.em-nota { border-left: 3px solid var(--roxo); }
+.em-nota__texto { color: var(--texto-suave); font-size: 13.5px; line-height: 1.6; }
+.em-nota__texto + .em-nota__texto { margin-top: 8px; }
+.em-nota code,
+.em-marcador {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 12.5px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  white-space: nowrap;
+}
+.em-marcadores { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* --------------------------------------------------------- Contadores */
+.em-contadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.em-contador {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: 14px 16px;
+  text-align: center;
+}
+.em-contador__valor { font-size: 24px; font-weight: 700; letter-spacing: -.5px; line-height: 1.1; }
+.em-contador__rotulo { color: var(--texto-fraco); font-size: 12px; margin-top: 4px; }
+.em-contador__valor--enviados { color: var(--verde); }
+.em-contador__valor--falhas { color: var(--vermelho); }
+
+.em-barra + .em-barra { margin-top: 12px; }
+.em-barra__topo { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; }
+.em-barra__topo span:first-child { color: var(--texto-suave); }
+.em-barra__topo span:last-child { font-weight: 600; }
+
+/* --------------------------------------------------------- Prévia do corpo */
+.em-previa {
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: 18px 20px;
+  max-height: 420px;
+  overflow: auto;
+  line-height: 1.55;
+}
+.em-previa a { color: #5b3df0; text-decoration: underline; }
+.em-previa img { max-width: 100%; height: auto; }
+
+/* --------------------------------------------------------- Ações (ficha) */
+.acoes-email { display: flex; flex-direction: column; gap: 12px; }
+
+/* --------------------------------------------------------- Tabela / ações */
+.em-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.em-acoes .botao svg.icone { width: 15px; height: 15px; }
+
+/* Variante de perigo discreta (vira sólida no hover). */
+.em-botao-perigo {
+  color: var(--vermelho);
+  border-color: rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .08);
+}
+.em-botao-perigo:hover {
+  color: #fff;
+  background: var(--vermelho);
+  border-color: var(--vermelho);
+}
+
+/* Form de teste em linha (config -> enviar teste). */
+.em-form-teste { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin-top: 10px; }
+.em-form-teste .campo__entrada { flex: 1; min-width: 200px; padding: 9px 12px; }
+
+/* --------------------------------------------------------- Descadastro (standalone) */
+.em-descadastro__email {
+  display: inline-block;
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  color: var(--texto);
+  margin: 10px 0 4px;
+  word-break: break-all;
+}
+.em-descadastro__icone {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: grid; place-items: center;
+  margin: 0 auto 6px;
+  background: rgba(124, 92, 255, .15);
+  color: var(--roxo-2);
+}
+.em-descadastro__icone--ok { background: rgba(52, 211, 153, .15); color: var(--verde); }
+.em-descadastro__icone--erro { background: rgba(248, 113, 113, .15); color: var(--vermelho); }
+.em-descadastro__icone svg.icone { width: 28px; height: 28px; }

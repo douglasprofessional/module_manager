@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Novo chamado de SLA (adendo docs/SPEC_MODULOS.md — MÓDULO 2).
+
+Contexto (da view ``novo_chamado``): ``form`` (ChamadoForm). Os prazos de SLA
+NÃO fazem parte do formulário — são calculados no ``Chamado.save()`` a partir da
+política e de ``aberto_em``.
+{% endcomment %}
+
+{% block titulo %}{% texto "sla.novo_chamado.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "sla.novo_chamado.subtitulo" %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'sla/sla.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'sla:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--um-dois">
+
+    {# Formulário de novo chamado #}
+    <section class="cartao" aria-labelledby="c-novo">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-novo">{% texto "sla.novo_chamado.dados_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'sla:novo_chamado' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
+          {{ form.titulo }}
+          {% for erro in form.titulo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+          {{ form.descricao }}
+          {% for erro in form.descricao.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.politica.id_for_label }}">{{ form.politica.label }}</label>
+          {{ form.politica }}
+          {% for erro in form.politica.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.prioridade.id_for_label }}">{{ form.prioridade.label }}</label>
+          {{ form.prioridade }}
+          {% for erro in form.prioridade.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.solicitante.id_for_label }}">{{ form.solicitante.label }}</label>
+          {{ form.solicitante }}
+          {% for erro in form.solicitante.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.responsavel.id_for_label }}">{{ form.responsavel.label }}</label>
+          {{ form.responsavel }}
+          {% for erro in form.responsavel.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">Criar chamado</button>
+      </form>
+    </section>
+
+    {# Dica sobre o cálculo de prazos #}
+    <section class="cartao cartao--destaque" aria-labelledby="c-dica">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-dica">{% texto "sla.novo_chamado.como_funciona_titulo" %}</h2></header>
+      <p class="destaque__texto">
+        Ao criar o chamado, os prazos de <strong>resposta</strong> e
+        <strong>resolução</strong> são calculados automaticamente a partir da
+        política escolhida, contando a partir da abertura.
+      </p>
+      <p class="destaque__texto">
+        Acompanhe o cumprimento na lista de chamados e registre a resposta e a
+        resolução na ficha de cada chamado.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

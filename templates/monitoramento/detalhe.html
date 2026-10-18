@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Ficha de um servidor monitorado (adendo 2 — MÓDULO 3).
+
+Contexto (de ``ServidorDetailView``): ``servidor``; ``ultima`` (última leitura ou
+None); ``medidores`` ({cpu,mem,disco} com pct/cor/largura); ``historico`` (até 30
+leituras, mais novas primeiro); ``serie_cpu``/``serie_mem``/``serie_disco``
+(cronológicas, para o mini-gráfico); ``tem_grafico``.
+
+Os dados de conexão são exibidos SEM segredos (só host/porta/usuário/método e o
+estado da credencial e da host key). Senha/chave/passphrase nunca aparecem.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'monitoramento/monitoramento.css' %}">{% endblock %}
+
+{% block titulo %}{{ servidor.nome }}{% endblock %}
+{% block subtitulo %}{{ servidor.usuario }}@{{ servidor.host }}:{{ servidor.porta_ssh }}{% if servidor.provedor %} · {{ servidor.provedor }}{% endif %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'monitoramento:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# Cabeçalho da ficha #}
+  <section class="cartao ficha-topo">
+    <div class="ficha-topo__identidade">
+      <span class="avatar avatar--grande mon-card__avatar" aria-hidden="true">{{ servidor.iniciais }}</span>
+      <div>
+        <h2 class="ficha-topo__nome">{{ servidor.nome }}</h2>
+        <p class="ficha-topo__meta">
+          {% if servidor.ultima_coleta_em %}Última coleta em {{ servidor.ultima_coleta_em|date:"d/m/Y H:i" }}{% else %}Ainda sem coleta{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="ficha-topo__indicadores">
+      <span class="tag-status {{ servidor.classe_status }}">{{ servidor.get_ultimo_status_display }}</span>
+      {% if ultima and ultima.online %}
+        <span class="score-chip">
+          <span class="score-chip__valor">{{ ultima.uptime_texto }}</span>
+          <span class="score-chip__rotulo">uptime</span>
+        </span>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="grade grade--dois-um">
+
+    <div class="coluna-principal">
+
+      {# Métricas atuais #}
+      <section class="cartao" aria-labelledby="m-atuais">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="m-atuais">{% texto "monitoramento.detalhe.metricas_titulo" %}</h2>
+          {% if ultima %}<span class="cartao__legenda-topo">{{ ultima.coletado_em|date:"d/m/Y H:i" }}</span>{% endif %}
+        </header>
+
+        {% if ultima and ultima.online %}
+          <div class="mon-medidores mon-medidores--detalhe">
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">{% include "parciais/_icones.html" with nome_icone="cpu" only %}<span>CPU</span></span>
+                <span class="mon-medidor__valor">{% if medidores.cpu.pct is not None %}{{ medidores.cpu.pct }}%{% else %}—{% endif %}</span>
+              </div>
+              <div class="barra"><span class="barra__preenchida" style="width: {{ medidores.cpu.largura }}%; background: {{ medidores.cpu.cor }};"></span></div>
+            </div>
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">{% include "parciais/_icones.html" with nome_icone="dashboard" only %}<span>Memória</span></span>
+                <span class="mon-medidor__valor">{% if medidores.mem.pct is not None %}{{ medidores.mem.pct }}%{% else %}—{% endif %}{% if ultima.mem_total_mb %} · {{ ultima.mem_usada_mb }}/{{ ultima.mem_total_mb }} MB{% endif %}</span>
+              </div>
+              <div class="barra"><span class="barra__preenchida" style="width: {{ medidores.mem.largura }}%; background: {{ medidores.mem.cor }};"></span></div>
+            </div>
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">{% include "parciais/_icones.html" with nome_icone="disco" only %}<span>Disco</span></span>
+                <span class="mon-medidor__valor">{% if medidores.disco.pct is not None %}{{ medidores.disco.pct }}%{% else %}—{% endif %}{% if ultima.disco_total_gb %} · {{ ultima.disco_usado_gb }}/{{ ultima.disco_total_gb }} GB{% endif %}</span>
+              </div>
+              <div class="barra"><span class="barra__preenchida" style="width: {{ medidores.disco.largura }}%; background: {{ medidores.disco.cor }};"></span></div>
+            </div>
+          </div>
+
+          <div class="mon-chips">
+            <span class="score-chip"><span class="score-chip__valor">{{ ultima.nucleos|default_if_none:"—" }}</span><span class="score-chip__rotulo">núcleos</span></span>
+            <span class="score-chip"><span class="score-chip__valor">{{ ultima.carga1|default_if_none:"—" }}</span><span class="score-chip__rotulo">carga 1m</span></span>
+            <span class="score-chip"><span class="score-chip__valor">{{ ultima.carga5|default_if_none:"—" }}</span><span class="score-chip__rotulo">carga 5m</span></span>
+            <span class="score-chip"><span class="score-chip__valor">{{ ultima.carga15|default_if_none:"—" }}</span><span class="score-chip__rotulo">carga 15m</span></span>
+          </div>
+          {% if ultima.sistema %}<p class="mon-sistema">Sistema: {{ ultima.sistema }}</p>{% endif %}
+        {% else %}
+          <p class="acoes__vazio">
+            {% if ultima %}Última coleta indisponível{% if ultima.erro %} — {{ ultima.erro }}{% endif %}.{% else %}Nenhuma coleta realizada ainda. Use "Coletar agora".{% endif %}
+          </p>
+        {% endif %}
+      </section>
+
+      {# Mini-gráfico do histórico #}
+      {% if tem_grafico %}
+        <section class="cartao" aria-labelledby="m-hist">
+          <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="m-hist">{% texto "monitoramento.detalhe.historico_titulo" %}</h2></header>
+          <div class="grafico">
+            <svg class="grafico__svg mon-grafico" viewBox="0 0 320 90" preserveAspectRatio="none" role="img" aria-label="Evolução de CPU, memória e disco">
+              <polyline class="grafico__linha" points="{% pontos_polyline serie_cpu 320 90 minimo=0 maximo=100 %}" fill="none" style="stroke: #7c5cff;" vector-effect="non-scaling-stroke"/>
+              <polyline class="grafico__linha" points="{% pontos_polyline serie_mem 320 90 minimo=0 maximo=100 %}" fill="none" style="stroke: #38bdf8;" vector-effect="non-scaling-stroke"/>
+              <polyline class="grafico__linha" points="{% pontos_polyline serie_disco 320 90 minimo=0 maximo=100 %}" fill="none" style="stroke: #fbbf24;" vector-effect="non-scaling-stroke"/>
+            </svg>
+          </div>
+          <ul class="legenda-linha">
+            <li><span class="ponto" style="background:#7c5cff"></span>CPU</li>
+            <li><span class="ponto" style="background:#38bdf8"></span>Memória</li>
+            <li><span class="ponto" style="background:#fbbf24"></span>Disco</li>
+          </ul>
+        </section>
+      {% endif %}
+
+      {# Tabela das últimas leituras #}
+      <section class="cartao cartao--tabela" aria-labelledby="m-leituras">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="m-leituras">{% texto "monitoramento.detalhe.leituras_titulo" %}</h2></header>
+        <div class="tabela-rolagem">
+          <table class="tabela">
+            <thead>
+              <tr>
+                <th scope="col">Quando</th>
+                <th scope="col">Status</th>
+                <th scope="col">CPU</th>
+                <th scope="col">Memória</th>
+                <th scope="col">Disco</th>
+                <th scope="col">Uptime</th>
+                <th scope="col">Carga 1m</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for leitura in historico %}
+                <tr>
+                  <td>{{ leitura.coletado_em|date:"d/m H:i" }}</td>
+                  <td>
+                    {% if leitura.online %}
+                      <span class="tag-status tag-status--qualificada">Online</span>
+                    {% else %}
+                      <span class="tag-status tag-status--erro">Offline</span>
+                    {% endif %}
+                  </td>
+                  <td>{% if leitura.cpu_pct is not None %}{{ leitura.cpu_pct }}%{% else %}—{% endif %}</td>
+                  <td>{% if leitura.mem_pct is not None %}{{ leitura.mem_pct }}%{% else %}—{% endif %}</td>
+                  <td>{% if leitura.disco_pct is not None %}{{ leitura.disco_pct }}%{% else %}—{% endif %}</td>
+                  <td>{% if leitura.online %}{{ leitura.uptime_texto }}{% else %}—{% endif %}</td>
+                  <td>{{ leitura.carga1|default_if_none:"—" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="7" class="tabela__vazio">Sem leituras registradas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="coluna-lateral">
+
+      {# Ações (POST + CSRF) #}
+      <section class="cartao" aria-labelledby="m-acoes">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="m-acoes">{% texto "monitoramento.detalhe.acoes_titulo" %}</h2></header>
+        <div class="acoes-sla">
+          <form method="post" action="{% url 'monitoramento:coletar' servidor.pk %}" data-mon-coletar>
+            {% csrf_token %}
+            <button type="submit" class="botao botao--primario botao--bloco">
+              {% include "parciais/_icones.html" with nome_icone="atualizar" only %}
+              <span>Coletar agora</span>
+            </button>
+          </form>
+          <a class="botao botao--suave botao--bloco" href="{% url 'monitoramento:editar' servidor.pk %}">
+            {% include "parciais/_icones.html" with nome_icone="editar" only %}
+            <span>Editar servidor</span>
+          </a>
+          <form method="post" action="{% url 'monitoramento:excluir' servidor.pk %}" data-confirmar="Remover este servidor e todo o seu histórico de leituras?">
+            {% csrf_token %}
+            <button type="submit" class="botao botao--suave botao--bloco mon-botao-perigo">
+              {% include "parciais/_icones.html" with nome_icone="lixeira" only %}
+              <span>Excluir</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      {# Dados de conexão (SEM segredos) #}
+      <section class="cartao" aria-labelledby="m-conexao">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="m-conexao">{% texto "monitoramento.detalhe.conexao_titulo" %}</h2></header>
+        <dl class="lista-dados">
+          <div class="lista-dados__item"><dt>Host</dt><dd>{{ servidor.host }}</dd></div>
+          <div class="lista-dados__item"><dt>Porta SSH</dt><dd>{{ servidor.porta_ssh }}</dd></div>
+          <div class="lista-dados__item"><dt>Usuário</dt><dd>{{ servidor.usuario }}</dd></div>
+          <div class="lista-dados__item"><dt>Método</dt><dd>{{ servidor.get_metodo_auth_display }}</dd></div>
+          <div class="lista-dados__item">
+            <dt>Credencial</dt>
+            <dd>
+              {% if servidor.tem_credencial %}
+                <span class="pastilha pastilha--sim">Configurada</span>
+              {% else %}
+                <span class="pastilha pastilha--nao">Ausente</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>Host key (TOFU)</dt>
+            <dd>
+              {% if servidor.host_key_fingerprint %}
+                <span class="pastilha pastilha--sim">Verificada</span>
+                <span class="lista-dados__extra mon-fingerprint">{{ servidor.host_key_fingerprint }}</span>
+              {% else %}
+                <span class="pastilha pastilha--neutro">Não verificada</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="lista-dados__item"><dt>Provedor</dt><dd>{{ servidor.provedor|default:"—" }}</dd></div>
+          <div class="lista-dados__item"><dt>Tags</dt><dd>{{ servidor.tags|default:"—" }}</dd></div>
+          <div class="lista-dados__item"><dt>Ativo</dt><dd>{% if servidor.ativo %}Sim{% else %}Não{% endif %}</dd></div>
+        </dl>
+        {% if servidor.observacoes %}
+          <p class="texto-corrido mon-observacoes">{{ servidor.observacoes|linebreaksbr }}</p>
+        {% endif %}
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'monitoramento/monitoramento.js' %}" defer></script>{% endblock %}

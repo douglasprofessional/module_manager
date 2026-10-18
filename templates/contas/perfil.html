@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+
+{% block titulo %}{% texto "contas.perfil.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "contas.perfil.subtitulo" %}{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# ------------------------------------------------------------- Dados #}
+  <section class="cartao">
+    <div class="cartao__cabecalho">
+      <h2 class="cartao__titulo">{% texto "contas.perfil.dados_titulo" %}</h2>
+    </div>
+
+    <div class="perfil-foto">
+      {% if request.user.foto_url %}
+        <img class="perfil-foto__img" src="{{ request.user.foto_url }}" alt="Foto de perfil">
+      {% else %}
+        <span class="perfil-foto__iniciais">{{ request.user.nome_completo|default:request.user.email|iniciais }}</span>
+      {% endif %}
+      <div>
+        <div class="config-modulo__nome">{{ request.user.nome_completo|default:request.user.email }}</div>
+        <div class="config-modulo__desc">{{ request.user.email }}</div>
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'contas:perfil' %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="perfil">
+      <div class="form-grid">
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ perfil_form.nome_completo.id_for_label }}">Nome completo</label>
+          {{ perfil_form.nome_completo }}
+          {% for erro in perfil_form.nome_completo.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ perfil_form.email.id_for_label }}">E-mail</label>
+          {{ perfil_form.email }}
+          {% for erro in perfil_form.email.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ perfil_form.tema.id_for_label }}">Tema</label>
+          {{ perfil_form.tema }}
+          {% for erro in perfil_form.tema.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ perfil_form.foto.id_for_label }}">Foto (até 2 MB)</label>
+          {{ perfil_form.foto }}
+          {% for erro in perfil_form.foto.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+      </div>
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--primario">Salvar perfil</button>
+      </div>
+    </form>
+  </section>
+
+  {# ------------------------------------------------------------- Senha #}
+  <section class="cartao">
+    <div class="cartao__cabecalho">
+      <h2 class="cartao__titulo">{% texto "contas.perfil.senha_titulo" %}</h2>
+    </div>
+    <p class="cartao__desc">Use uma senha forte e exclusiva. Você continuará conectado após a troca.</p>
+
+    <form method="post" action="{% url 'contas:perfil' %}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="senha">
+      {% if senha_form.non_field_errors %}
+        {% for erro in senha_form.non_field_errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+      {% endif %}
+      <div class="form-grid form-grid--um" style="max-width:520px;">
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ senha_form.senha_atual.id_for_label }}">Senha atual</label>
+          {{ senha_form.senha_atual }}
+          {% for erro in senha_form.senha_atual.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ senha_form.nova_senha.id_for_label }}">Nova senha</label>
+          {{ senha_form.nova_senha }}
+          {% for erro in senha_form.nova_senha.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ senha_form.confirmar_senha.id_for_label }}">Confirmar nova senha</label>
+          {{ senha_form.confirmar_senha }}
+          {% for erro in senha_form.confirmar_senha.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+      </div>
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--primario">Alterar senha</button>
+      </div>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

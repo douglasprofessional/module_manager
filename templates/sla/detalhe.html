@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Ficha completa de um chamado de SLA (adendo docs/SPEC_MODULOS.md — MÓDULO 2).
+
+Contexto (de ``ChamadoDetailView``): ``chamado`` (objeto ``Chamado``) e os dados
+de SLA já calculados: ``situacao_resolucao``/``situacao_resposta``,
+``classe_resolucao``/``classe_resposta``, ``rotulo_resolucao``/``rotulo_resposta``,
+``percentual_resolucao`` e ``tempo_restante``.
+{% endcomment %}
+
+{% block titulo %}{{ chamado.titulo }}{% endblock %}
+{% block subtitulo %}{% texto "sla.detalhe.chamado_numero" numero=chamado.pk %} · {{ chamado.politica.nome }}{% if chamado.solicitante %} · {{ chamado.solicitante }}{% endif %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'sla/sla.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'sla:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# Cabeçalho da ficha #}
+  <section class="cartao ficha-topo">
+    <div class="ficha-topo__identidade">
+      <span class="avatar avatar--grande" aria-hidden="true">{% include "parciais/_icones.html" with nome_icone="sla" only %}</span>
+      <div>
+        <h2 class="ficha-topo__nome">{{ chamado.titulo }}</h2>
+        <p class="ficha-topo__meta">Aberto em {{ chamado.aberto_em|date:"d/m/Y H:i" }}</p>
+      </div>
+    </div>
+    <div class="ficha-topo__indicadores">
+      <span class="badge {{ chamado.classe_badge_prioridade }}">{{ chamado.get_prioridade_display }}</span>
+      <span class="tag-status tag-status--{{ chamado.status }}">{{ chamado.get_status_display }}</span>
+      <span class="tag-status {{ classe_resolucao }}">{{ rotulo_resolucao }}</span>
+    </div>
+  </section>
+
+  <div class="grade grade--dois-um">
+
+    <div class="coluna-principal">
+
+      {# Medidor de SLA (percentual de resolução) #}
+      <section class="cartao" aria-labelledby="s-medidor">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="s-medidor">{% texto "sla.detalhe.prazo_titulo" %}</h2>
+          <span class="tag-status {{ classe_resolucao }}">{{ rotulo_resolucao }}</span>
+        </header>
+
+        <div class="medidor">
+          <div class="medidor__topo">
+            <span>{{ percentual_resolucao }}% do prazo consumido</span>
+            <span class="medidor__restante">{{ tempo_restante }}</span>
+          </div>
+          <div class="barra" role="progressbar" aria-valuenow="{{ percentual_resolucao }}" aria-valuemin="0" aria-valuemax="100" aria-label="Percentual do prazo de resolução consumido">
+            <span class="barra__preenchida {% if situacao_resolucao == 'estourado' %}barra__preenchida--sla-estourado{% elif situacao_resolucao == 'em_risco' %}barra__preenchida--sla-risco{% elif situacao_resolucao == 'cumprido' %}barra__preenchida--sla-cumprido{% endif %}" style="width: {{ percentual_resolucao }}%"></span>
+          </div>
+        </div>
+
+        <div class="medidor__marcos">
+          <div class="medidor__marco">
+            <span class="medidor__marco-rotulo">Resposta</span>
+            <span class="tag-status {{ classe_resposta }}">{{ rotulo_resposta }}</span>
+          </div>
+          <div class="medidor__marco">
+            <span class="medidor__marco-rotulo">Prazo de resposta</span>
+            <span class="medidor__marco-valor">{{ chamado.prazo_resposta|date:"d/m/Y H:i"|default:"—" }}</span>
+          </div>
+          <div class="medidor__marco">
+            <span class="medidor__marco-rotulo">Prazo de resolução</span>
+            <span class="medidor__marco-valor">{{ chamado.prazo_resolucao|date:"d/m/Y H:i"|default:"—" }}</span>
+          </div>
+        </div>
+      </section>
+
+      {# Linha do tempo #}
+      <section class="cartao" aria-labelledby="s-tempo">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-tempo">{% texto "sla.detalhe.linha_tempo_titulo" %}</h2></header>
+
+        <ol class="linha-tempo">
+          <li class="linha-tempo__item linha-tempo__item--feito">
+            <span class="linha-tempo__ponto" aria-hidden="true"></span>
+            <div class="linha-tempo__corpo">
+              <span class="linha-tempo__titulo">{% texto "sla.detalhe.aberto" %}</span>
+              <span class="linha-tempo__quando">{{ chamado.aberto_em|date:"d/m/Y H:i" }}</span>
+            </div>
+          </li>
+          <li class="linha-tempo__item {% if chamado.primeira_resposta_em %}linha-tempo__item--feito{% else %}linha-tempo__item--pendente{% endif %}">
+            <span class="linha-tempo__ponto" aria-hidden="true"></span>
+            <div class="linha-tempo__corpo">
+              <span class="linha-tempo__titulo">{% texto "sla.detalhe.primeira_resposta" %}</span>
+              <span class="linha-tempo__quando">{% if chamado.primeira_resposta_em %}{{ chamado.primeira_resposta_em|date:"d/m/Y H:i" }}{% else %}Ainda não respondido{% endif %}</span>
+            </div>
+          </li>
+          <li class="linha-tempo__item {% if chamado.resolvido_em %}linha-tempo__item--feito{% else %}linha-tempo__item--pendente{% endif %}">
+            <span class="linha-tempo__ponto" aria-hidden="true"></span>
+            <div class="linha-tempo__corpo">
+              <span class="linha-tempo__titulo">{% texto "sla.detalhe.resolucao" %}</span>
+              <span class="linha-tempo__quando">{% if chamado.resolvido_em %}{{ chamado.resolvido_em|date:"d/m/Y H:i" }}{% else %}Em aberto{% endif %}</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      {# Descrição #}
+      {% if chamado.descricao %}
+        <section class="cartao" aria-labelledby="s-desc">
+          <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-desc">{% texto "sla.detalhe.descricao_titulo" %}</h2></header>
+          <p class="texto-corrido">{{ chamado.descricao|linebreaksbr }}</p>
+        </section>
+      {% endif %}
+    </div>
+
+    <div class="coluna-lateral">
+
+      {# Ações de atendimento (POST + CSRF) #}
+      <section class="cartao" aria-labelledby="s-acoes">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-acoes">{% texto "sla.detalhe.acoes_titulo" %}</h2></header>
+
+        <div class="acoes-sla">
+          {% if not chamado.primeira_resposta_em %}
+            <form method="post" action="{% url 'sla:registrar_resposta' chamado.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="botao botao--suave botao--bloco">Registrar resposta</button>
+            </form>
+          {% else %}
+            <p class="acoes-sla__estado">Primeira resposta registrada em {{ chamado.primeira_resposta_em|date:"d/m/Y H:i" }}.</p>
+          {% endif %}
+
+          {% if not chamado.resolvido_em %}
+            <form method="post" action="{% url 'sla:resolver' chamado.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="botao botao--primario botao--bloco">Marcar como resolvido</button>
+            </form>
+          {% else %}
+            <p class="acoes-sla__estado">Resolvido em {{ chamado.resolvido_em|date:"d/m/Y H:i" }}.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      {# Dados do chamado #}
+      <section class="cartao" aria-labelledby="s-dados">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-dados">{% texto "sla.detalhe.informacoes_titulo" %}</h2></header>
+        <dl class="lista-dados">
+          <div class="lista-dados__item"><dt>Política</dt><dd>{{ chamado.politica.nome }}</dd></div>
+          <div class="lista-dados__item"><dt>Prioridade</dt><dd>{{ chamado.get_prioridade_display }}</dd></div>
+          <div class="lista-dados__item"><dt>Status</dt><dd>{{ chamado.get_status_display }}</dd></div>
+          <div class="lista-dados__item"><dt>Solicitante</dt><dd>{{ chamado.solicitante|default:"—" }}</dd></div>
+          <div class="lista-dados__item">
+            <dt>Responsável</dt>
+            <dd>
+              {% if chamado.responsavel %}
+                <span class="celula-responsavel celula-responsavel--dado">
+                  <span class="avatar avatar--sla" aria-hidden="true">{{ chamado.responsavel.get_full_name|iniciais }}</span>
+                  <span>{{ chamado.nome_responsavel }}</span>
+                </span>
+              {% else %}—{% endif %}
+            </dd>
+          </div>
+          <div class="lista-dados__item"><dt>Aberto em</dt><dd>{{ chamado.aberto_em|date:"d/m/Y H:i" }}</dd></div>
+          <div class="lista-dados__item"><dt>Atualizado em</dt><dd>{{ chamado.atualizado_em|date:"d/m/Y H:i" }}</dd></div>
+        </dl>
+      </section>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

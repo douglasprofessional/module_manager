@@ -1,0 +1,99 @@
+{% load static nucleo_extras %}
+{% comment %}
+Página PÚBLICA de descadastro (adendo 3 — MÓDULO 5).
+
+STANDALONE: NÃO estende base.html (o destinatário não é administrador). Copia a
+estrutura da tela de login (tema escuro, carrega apenas css/dashboard.css e o css
+do módulo). Não exige login (isenta pelo PUBLIC_URL_PREFIXES).
+
+Estados (contexto de ``descadastrar``):
+  - invalido          -> link inválido (token não encontrado);
+  - confirmar         -> mostra o e-mail e um form POST (CSRF) de confirmação;
+  - ja_descadastrado  -> o contato já estava descadastrado;
+  - sucesso           -> descadastro efetivado.
+{% endcomment %}
+<!doctype html>
+<html lang="pt-br" data-tema="{{ tema_atual|default:'claro' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  {% texto "geral.marca_padrao" as marca_padrao %}<title>{% texto "email_marketing.descadastrar.titulo_aba" %} · {{ site_nome|default:marca_padrao }}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Staatliches&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">
+</head>
+<body class="tela-login">
+  <main class="login" role="main">
+    <section class="login__cartao" aria-labelledby="desc-titulo">
+      <div class="login__marca">
+        <span class="marca__icone marca__icone--grande" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icone">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" />
+          </svg>
+        </span>
+        <span class="login__marca-nome">{{ site_nome|default:marca_padrao }}</span>
+      </div>
+
+      {% if estado == "invalido" %}
+        <span class="em-descadastro__icone em-descadastro__icone--erro" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icone">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" />
+          </svg>
+        </span>
+        <h1 class="login__titulo" id="desc-titulo">{% texto "email_marketing.descadastrar.invalido_titulo" %}</h1>
+        <p class="login__subtitulo">
+          Este link de descadastro não é válido ou expirou. Se você continuar
+          recebendo e-mails, use o link mais recente enviado a você.
+        </p>
+
+      {% elif estado == "sucesso" %}
+        <span class="em-descadastro__icone em-descadastro__icone--ok" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icone">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" />
+          </svg>
+        </span>
+        <h1 class="login__titulo" id="desc-titulo">{% texto "email_marketing.descadastrar.concluido_titulo" %}</h1>
+        <p class="login__subtitulo">
+          Pronto! O e-mail abaixo não receberá mais nossas campanhas.
+        </p>
+        <p style="text-align:center"><span class="em-descadastro__email">{{ contato.email }}</span></p>
+
+      {% elif estado == "ja_descadastrado" %}
+        <span class="em-descadastro__icone em-descadastro__icone--ok" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icone">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" />
+          </svg>
+        </span>
+        <h1 class="login__titulo" id="desc-titulo">{% texto "email_marketing.descadastrar.ja_descadastrado_titulo" %}</h1>
+        <p class="login__subtitulo">
+          O e-mail abaixo já havia sido descadastrado e não recebe mais nossas
+          campanhas.
+        </p>
+        <p style="text-align:center"><span class="em-descadastro__email">{{ contato.email }}</span></p>
+
+      {% else %}{# confirmar #}
+        <span class="em-descadastro__icone" aria-hidden="true">
+          {% include "parciais/_icones.html" with nome_icone="email" only %}
+        </span>
+        <h1 class="login__titulo" id="desc-titulo">{% texto "email_marketing.descadastrar.confirmar_titulo" %}</h1>
+        <p class="login__subtitulo">
+          Deseja parar de receber nossos e-mails no endereço abaixo?
+        </p>
+        <p style="text-align:center"><span class="em-descadastro__email">{{ contato.email }}</span></p>
+
+        <form class="login__form" method="post" novalidate>
+          {% csrf_token %}
+          <button type="submit" class="botao botao--primario botao--bloco">Confirmar descadastro</button>
+        </form>
+      {% endif %}
+
+      <p class="login__rodape">{% texto "email_marketing.descadastrar.rodape" nome=site_nome|default:marca_padrao %}</p>
+    </section>
+  </main>
+</body>
+</html>

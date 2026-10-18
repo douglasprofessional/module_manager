@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static blog_extras nucleo_extras %}
+{% comment %}
+Lista de posts do blog (gestão interna — somente staff).
+
+Contexto (da view ``lista``): ``posts`` (queryset filtrado), ``status_choices``
+(choices de Post.Status), ``current_status`` e ``q`` (filtros ativos) e
+``contagem`` (publicados/rascunhos/agendados).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'blog/blog.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "blog.lista.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "blog.lista.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'blog:post_create' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Novo post</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  <div class="cartoes-resumo">
+    <a class="cartao-stat" href="?status=published">
+      <span class="cartao-stat__icone" style="background: rgba(52,211,153,.15); color: #34d399;">
+        {% include "parciais/_icones.html" with nome_icone="post" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ contagem.publicados|default:0 }}</span>
+        <span class="cartao-stat__rotulo">Publicados</span>
+      </span>
+    </a>
+    <a class="cartao-stat" href="?status=draft">
+      <span class="cartao-stat__icone" style="background: rgba(251,191,36,.15); color: #fbbf24;">
+        {% include "parciais/_icones.html" with nome_icone="editar" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ contagem.rascunhos|default:0 }}</span>
+        <span class="cartao-stat__rotulo">Rascunhos</span>
+      </span>
+    </a>
+    <a class="cartao-stat" href="?status=scheduled">
+      <span class="cartao-stat__icone" style="background: rgba(56,189,248,.15); color: #38bdf8;">
+        {% include "parciais/_icones.html" with nome_icone="calendario" only %}
+      </span>
+      <span class="cartao-stat__corpo">
+        <span class="cartao-stat__valor">{{ contagem.agendados|default:0 }}</span>
+        <span class="cartao-stat__rotulo">Agendados</span>
+      </span>
+    </a>
+  </div>
+
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho cartao__cabecalho--filtros">
+      <h2 class="cartao__titulo">{% texto "blog.lista.posts_titulo" %}</h2>
+
+      <form class="filtros" method="get" role="search" aria-label="Filtrar posts">
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-busca">Buscar</label>
+          <input class="campo__entrada" type="search" id="filtro-busca" name="q" value="{{ q }}" placeholder="Título ou conteúdo…">
+        </div>
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-status">Status</label>
+          <select class="campo__entrada campo__entrada--select" id="filtro-status" name="status">
+            <option value="">Todos os status</option>
+            {% for valor, rotulo in status_choices %}
+              <option value="{{ valor }}" {% if current_status == valor %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filtros__acoes">
+          <button type="submit" class="botao botao--primario">Filtrar</button>
+          <a class="botao botao--suave" href="{% url 'blog:lista' %}">Limpar</a>
+        </div>
+      </form>
+    </header>
+
+    <div class="tabela-rolagem">
+      <table class="tabela tabela--blog">
+        <thead>
+          <tr>
+            <th scope="col">Título</th>
+            <th scope="col">Autor</th>
+            <th scope="col">Status</th>
+            <th scope="col">SEO</th>
+            <th scope="col">GEO</th>
+            <th scope="col">A11y</th>
+            <th scope="col">Data</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for post in posts %}
+            <tr>
+              <td>
+                <a class="celula-chamado" href="{% url 'blog:post_edit' post.pk %}">
+                  <span class="celula-chamado__titulo">{{ post.title|default:'(sem título)' }}</span>
+                </a>
+              </td>
+              <td>{{ post.author.get_full_name|default:'—' }}</td>
+              <td><span class="tag-status tag-status--{{ post.status }}">{{ post.get_status_display }}</span></td>
+              <td><span class="pontuacao pontuacao--{{ post.seo_score|score_class }}">{{ post.seo_score }}</span></td>
+              <td><span class="pontuacao pontuacao--{{ post.geo_score|score_class }}">{{ post.geo_score }}</span></td>
+              <td><span class="pontuacao pontuacao--{{ post.a11y_score|score_class }}">{{ post.a11y_score }}</span></td>
+              <td class="celula-prazo">{{ post.published_at|default:post.created_at|date:'d/m/Y' }}</td>
+              <td>
+                <span class="tabela-acoes">
+                  <a class="botao botao--suave botao--pequeno" href="{% url 'blog:post_edit' post.pk %}">
+                    {% include "parciais/_icones.html" with nome_icone="editar" only %}
+                    <span>Editar</span>
+                  </a>
+                  <a class="botao botao--perigo botao--pequeno" href="{% url 'blog:post_delete' post.pk %}">
+                    {% include "parciais/_icones.html" with nome_icone="lixeira" only %}
+                    <span>Excluir</span>
+                  </a>
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="8" class="tabela__vazio">Nenhum post encontrado com os filtros atuais.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

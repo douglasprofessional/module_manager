@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Ficha completa da empresa (seção 13 da SPEC).
+
+Contexto (de ``EmpresaDetailView``): ``empresa`` (objeto ``Empresa``),
+``linha`` (EmpresaLinha, para avatar), ``problemas`` (list[str]),
+``problemas_badges`` ([{slug, rotulo, cor}]), ``situacao_google`` e
+``horario_google`` (rótulos), ``config`` e ``ia_disponivel``.
+Exibe campos, flags, scores, contatos, o perfil no Google (Places API) e os
+diagnósticos (motor de regras e IA). Textos: ``apps/nucleo/textos.py``.
+{% endcomment %}
+
+{% block titulo %}{{ empresa.nome }}{% endblock %}
+{% block subtitulo %}{% texto "prospeccao.detalhe.subtitulo_padrao" as subtitulo_padrao %}{{ empresa.categoria|default:subtitulo_padrao }}{% if empresa.endereco %} · {{ empresa.endereco }}{% endif %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'prospeccao/prospeccao.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'prospeccao:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>{% texto "prospeccao.detalhe.voltar" %}</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+{% texto "geral.sem_valor" as sem_valor %}
+<div class="painel">
+
+  {# Cabeçalho da ficha #}
+  <section class="cartao ficha-topo">
+    <div class="ficha-topo__identidade">
+      <span class="avatar avatar--grande" style="background:{{ linha.cor }}" aria-hidden="true">{{ linha.inicial }}</span>
+      <div>
+        <h2 class="ficha-topo__nome">{{ empresa.nome }}</h2>
+        {% texto "prospeccao.detalhe.tempo_nao_informado" as tempo_padrao %}
+        <p class="ficha-topo__meta">{{ empresa.tempo_mercado_texto|default:tempo_padrao }}</p>
+      </div>
+    </div>
+    <div class="ficha-topo__indicadores">
+      <span class="tag-status tag-status--{{ empresa.status_prospeccao }}">{{ empresa.get_status_prospeccao_display }}</span>
+      <span class="score-chip">
+        <span class="score-chip__valor">{{ empresa.oportunidade_score }}</span>
+        <span class="score-chip__rotulo">{% texto "prospeccao.detalhe.oportunidade" %}</span>
+      </span>
+    </div>
+  </section>
+
+  <div class="grade grade--dois-um">
+
+    <div class="coluna-principal">
+      {# Problemas detectados #}
+      <section class="cartao" aria-labelledby="f-problemas">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-problemas">{% texto "prospeccao.detalhe.problemas_titulo" %}</h2></header>
+        <div class="badges badges--folgado">
+          {% for p in problemas_badges %}
+            <span class="badge badge--{{ p.cor }}">{{ p.rotulo }}</span>
+          {% empty %}
+            <span class="badge badge--verde">{% texto "prospeccao.problemas.nenhum_evidente" %}</span>
+          {% endfor %}
+        </div>
+      </section>
+
+      {# Perfil no Google (Google Places API) #}
+      <section class="cartao" aria-labelledby="f-google">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="f-google">{% texto "prospeccao.detalhe.google_titulo" %}</h2>
+          {% if empresa.place_id %}
+            <form method="post" action="{% url 'prospeccao:atualizar_google' empresa.pk %}" class="linha-acao">
+              {% csrf_token %}
+              <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.detalhe.atualizar_google" %}</button>
+            </form>
+          {% endif %}
+        </header>
+
+        {% if empresa.analisada_no_google %}
+          <dl class="lista-dados">
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.nota" %}</dt>
+              <dd>{{ empresa.nota_formatada|default:sem_valor }}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.avaliacoes" %}</dt>
+              <dd>{% if empresa.total_avaliacoes is not None %}{{ empresa.total_avaliacoes }}{% else %}{{ sem_valor }}{% endif %}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.fotos" %}</dt>
+              <dd>{% if empresa.total_fotos is not None %}{{ empresa.total_fotos }}{% else %}{{ sem_valor }}{% endif %}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.situacao" %}</dt>
+              <dd>{{ situacao_google }}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.horario" %}</dt>
+              <dd>{{ horario_google }}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.ultima_atividade" %}</dt>
+              <dd>{% if empresa.ultima_atividade_perfil %}{{ empresa.ultima_atividade_perfil|date:"d/m/Y" }}{% else %}{% texto "prospeccao.detalhe.sem_atividade" %}{% endif %}</dd>
+            </div>
+            <div class="lista-dados__item">
+              <dt>{% texto "prospeccao.detalhe.website" %}</dt>
+              <dd>{% if empresa.website %}<a href="{{ empresa.website }}" target="_blank" rel="noopener noreferrer nofollow">{{ empresa.website }}</a>{% else %}{{ sem_valor }}{% endif %}</dd>
+            </div>
+          </dl>
+          {% if empresa.horario_semana %}
+            <ul class="horario-semana">
+              {% for dia in empresa.horario_semana %}<li>{{ dia }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+          <p class="diagnostico-meta">
+            {% if empresa.google_maps_url %}<a href="{{ empresa.google_maps_url }}" target="_blank" rel="noopener noreferrer nofollow">{% texto "prospeccao.detalhe.abrir_maps" %}</a> · {% endif %}
+            {% texto "prospeccao.detalhe.analisado_em" data=empresa.analisado_places_em|date:"d/m/Y H:i" %}
+          </p>
+        {% else %}
+          <p class="texto-corrido">{% texto "prospeccao.detalhe.google_nao_analisado" %}</p>
+        {% endif %}
+      </section>
+
+      {# Diagnóstico do motor de análise (regras) #}
+      <section class="cartao" aria-labelledby="f-diagnostico">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-diagnostico">{% texto "prospeccao.detalhe.diagnostico_titulo" %}</h2></header>
+        {% if empresa.diagnostico %}
+          <p class="diagnostico-texto">{{ empresa.diagnostico }}</p>
+        {% else %}
+          <p class="texto-corrido">{% texto "prospeccao.detalhe.diagnostico_vazio" %}</p>
+        {% endif %}
+      </section>
+
+      {# Diagnóstico com IA generativa (Claude) #}
+      <section class="cartao" aria-labelledby="f-ia">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="f-ia">{% texto "prospeccao.detalhe.ia_titulo" %}</h2>
+          {% if ia_disponivel %}
+            <form method="post" action="{% url 'prospeccao:diagnostico_ia' empresa.pk %}" class="linha-acao">
+              {% csrf_token %}
+              <button type="submit" class="botao botao--primario botao--pequeno">
+                {% if empresa.diagnostico_ia %}{% texto "prospeccao.detalhe.ia_regerar" %}{% else %}{% texto "prospeccao.detalhe.ia_gerar" %}{% endif %}
+              </button>
+            </form>
+          {% endif %}
+        </header>
+        {% if empresa.diagnostico_ia %}
+          <p class="diagnostico-texto">{{ empresa.diagnostico_ia }}</p>
+          <p class="diagnostico-meta">{% texto "prospeccao.detalhe.ia_gerado_em" data=empresa.diagnostico_ia_em|date:"d/m/Y H:i" %}</p>
+        {% else %}
+          <p class="texto-corrido">{% texto "prospeccao.detalhe.ia_vazio" %}</p>
+        {% endif %}
+        {% if not ia_disponivel %}
+          <p class="diagnostico-meta">
+            {% if config.ia_ativa %}{% texto "prospeccao.detalhe.ia_sem_chave" %}{% else %}{% texto "prospeccao.detalhe.ia_inativa" %}{% endif %}
+            <a href="{% url 'prospeccao:painel' %}">{% texto "prospeccao.detalhe.ir_painel" %}</a>
+          </p>
+        {% endif %}
+      </section>
+
+      {# Contatos #}
+      <section class="cartao" aria-labelledby="f-contatos">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-contatos">{% texto "prospeccao.detalhe.contatos_titulo" %}</h2></header>
+        <dl class="lista-dados">
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.responsavel" %}</dt>
+            <dd>{{ empresa.responsavel|default:sem_valor }}{% if empresa.cargo_responsavel %} <span class="lista-dados__extra">({{ empresa.cargo_responsavel }})</span>{% endif %}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.email" %}</dt>
+            <dd>{% if empresa.email %}<a href="mailto:{{ empresa.email }}">{{ empresa.email }}</a>{% else %}{{ sem_valor }}{% endif %}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.telefone" %}</dt>
+            <dd>{{ empresa.telefone|default:sem_valor }}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.whatsapp" %}</dt>
+            <dd>{{ empresa.whatsapp|default:sem_valor }}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.instagram" %}</dt>
+            <dd>{{ empresa.instagram|default:sem_valor }}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.website" %}</dt>
+            <dd>{% if empresa.website %}<a href="{{ empresa.website }}" target="_blank" rel="noopener noreferrer nofollow">{{ empresa.website }}</a>{% else %}{{ sem_valor }}{% endif %}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.dominio" %}</dt>
+            <dd>{{ empresa.dominio|default:sem_valor }}</dd>
+          </div>
+          <div class="lista-dados__item">
+            <dt>{% texto "prospeccao.detalhe.endereco" %}</dt>
+            <dd>{{ empresa.endereco|default:sem_valor }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      {# Observações #}
+      {% if empresa.observacoes %}
+        <section class="cartao" aria-labelledby="f-obs">
+          <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-obs">{% texto "prospeccao.detalhe.observacoes_titulo" %}</h2></header>
+          <p class="texto-corrido">{{ empresa.observacoes|linebreaksbr }}</p>
+        </section>
+      {% endif %}
+    </div>
+
+    <div class="coluna-lateral">
+      {# Scores #}
+      <section class="cartao" aria-labelledby="f-scores">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-scores">{% texto "prospeccao.detalhe.scores_titulo" %}</h2></header>
+
+        <div class="score-linha">
+          <div class="score-linha__topo"><span>{% texto "prospeccao.detalhe.score_seo" %}</span><span>{% if empresa.score_seo is not None %}{{ empresa.score_seo }}/100{% else %}{{ sem_valor }}{% endif %}</span></div>
+          <div class="barra" role="progressbar" aria-valuenow="{{ empresa.score_seo|default:0 }}" aria-valuemin="0" aria-valuemax="100" aria-label="{% texto 'prospeccao.detalhe.aria_seo' %}">
+            <span class="barra__preenchida" style="width: {{ empresa.score_seo|default:0 }}%"></span>
+          </div>
+        </div>
+
+        <div class="score-linha">
+          <div class="score-linha__topo"><span>{% texto "prospeccao.detalhe.score_performance" %}</span><span>{% if empresa.score_performance is not None %}{{ empresa.score_performance }}/100{% else %}{{ sem_valor }}{% endif %}</span></div>
+          <div class="barra" role="progressbar" aria-valuenow="{{ empresa.score_performance|default:0 }}" aria-valuemin="0" aria-valuemax="100" aria-label="{% texto 'prospeccao.detalhe.aria_performance' %}">
+            <span class="barra__preenchida" style="width: {{ empresa.score_performance|default:0 }}%"></span>
+          </div>
+        </div>
+
+        <div class="score-linha">
+          <div class="score-linha__topo"><span>{% texto "prospeccao.detalhe.score_oportunidade" %}</span><span>{{ empresa.oportunidade_score }}/100</span></div>
+          <div class="barra" role="progressbar" aria-valuenow="{{ empresa.oportunidade_score }}" aria-valuemin="0" aria-valuemax="100" aria-label="{% texto 'prospeccao.detalhe.aria_oportunidade' %}">
+            <span class="barra__preenchida barra__preenchida--roxa" style="width: {{ empresa.oportunidade_score }}%"></span>
+          </div>
+        </div>
+      </section>
+
+      {# Sinais técnicos (flags) #}
+      {% texto "geral.sim" as sim %}{% texto "geral.nao" as nao %}
+      <section class="cartao" aria-labelledby="f-flags">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-flags">{% texto "prospeccao.detalhe.sinais_titulo" %}</h2></header>
+        <ul class="flags">
+          <li class="flags__item"><span>{% texto "prospeccao.detalhe.possui_site" %}</span>{% if empresa.tem_site %}<span class="pastilha pastilha--sim">{{ sim }}</span>{% else %}<span class="pastilha pastilha--nao">{{ nao }}</span>{% endif %}</li>
+          <li class="flags__item"><span>{% texto "prospeccao.detalhe.site_desatualizado" %}</span>{% if empresa.site_desatualizado %}<span class="pastilha pastilha--nao">{{ sim }}</span>{% else %}<span class="pastilha pastilha--sim">{{ nao }}</span>{% endif %}</li>
+          <li class="flags__item"><span>{% texto "prospeccao.detalhe.apenas_instagram" %}</span>{% if empresa.apenas_instagram %}<span class="pastilha pastilha--nao">{{ sim }}</span>{% else %}<span class="pastilha pastilha--sim">{{ nao }}</span>{% endif %}</li>
+          <li class="flags__item"><span>{% texto "prospeccao.detalhe.possui_ssl" %}</span>{% if empresa.tem_ssl is None %}<span class="pastilha pastilha--neutro">{% texto "prospeccao.detalhe.desconhecido" %}</span>{% elif empresa.tem_ssl %}<span class="pastilha pastilha--sim">{{ sim }}</span>{% else %}<span class="pastilha pastilha--nao">{{ nao }}</span>{% endif %}</li>
+          <li class="flags__item"><span>{% texto "prospeccao.detalhe.hospedagem_sem_site" %}</span>{% if empresa.hospedagem_sem_site %}<span class="pastilha pastilha--nao">{{ sim }}</span>{% else %}<span class="pastilha pastilha--sim">{{ nao }}</span>{% endif %}</li>
+        </ul>
+      </section>
+
+      {# Metadados #}
+      <section class="cartao" aria-labelledby="f-meta">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="f-meta">{% texto "prospeccao.detalhe.informacoes_titulo" %}</h2></header>
+        <dl class="lista-dados">
+          <div class="lista-dados__item"><dt>{% texto "prospeccao.detalhe.categoria" %}</dt><dd>{{ empresa.categoria|default:sem_valor }}</dd></div>
+          <div class="lista-dados__item"><dt>{% texto "prospeccao.detalhe.data_fundacao" %}</dt><dd>{{ empresa.data_fundacao|date:"d/m/Y"|default:sem_valor }}</dd></div>
+          <div class="lista-dados__item"><dt>{% texto "prospeccao.detalhe.localizacao" %}</dt><dd>{% if empresa.latitude is not None and empresa.longitude is not None %}{{ empresa.latitude }}, {{ empresa.longitude }}{% else %}{{ sem_valor }}{% endif %}</dd></div>
+          <div class="lista-dados__item"><dt>{% texto "prospeccao.detalhe.criada_em" %}</dt><dd>{{ empresa.criado_em|date:"d/m/Y H:i" }}</dd></div>
+          <div class="lista-dados__item"><dt>{% texto "prospeccao.detalhe.atualizada_em" %}</dt><dd>{{ empresa.atualizado_em|date:"d/m/Y H:i" }}</dd></div>
+        </dl>
+      </section>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

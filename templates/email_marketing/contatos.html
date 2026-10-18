@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Contatos (adendo 3 — MÓDULO 5).
+
+Contexto (da view ``contatos``): ``form`` (ContatoImportacaoForm), ``contatos``
+(page object_list), ``page_obj`` / ``is_paginated``, ``total_contatos``. A
+importação em massa aceita um e-mail por linha (com "Nome <email>"); inválidos
+são ignorados com aviso.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "email_marketing.contatos.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "email_marketing.contatos.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'email_marketing:listas' %}">
+    {% include "parciais/_icones.html" with nome_icone="grupo" only %}
+    <span>Listas</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    {# Tabela de contatos #}
+    <section class="cartao cartao--tabela" aria-labelledby="ct-lista">
+      <header class="cartao__cabecalho">
+        <h2 class="cartao__titulo" id="ct-lista">{% texto "email_marketing.contatos.contatos_titulo" %}</h2>
+        <span class="cartao__legenda-topo">{{ total_contatos }} no total</span>
+      </header>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">E-mail</th>
+              <th scope="col">Nome</th>
+              <th scope="col">Empresa</th>
+              <th scope="col">Inscrito</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for contato in contatos %}
+              <tr>
+                <td class="celula-empresa__nome">{{ contato.email }}</td>
+                <td>{{ contato.nome|default:"—" }}</td>
+                <td>{{ contato.empresa|default:"—" }}</td>
+                <td>
+                  {% if contato.inscrito %}
+                    <span class="pastilha pastilha--sim">Inscrito</span>
+                  {% else %}
+                    <span class="pastilha pastilha--nao">Descadastrado</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="tabela__vazio">Nenhum contato cadastrado ainda.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+        <nav class="paginacao" aria-label="Paginação">
+          {% if page_obj.has_previous %}
+            <a class="paginacao__link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+          {% else %}
+            <span class="paginacao__link paginacao__link--inativo">Anterior</span>
+          {% endif %}
+          <span class="paginacao__atual">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="paginacao__link" href="?page={{ page_obj.next_page_number }}">Próxima</a>
+          {% else %}
+            <span class="paginacao__link paginacao__link--inativo">Próxima</span>
+          {% endif %}
+        </nav>
+      {% endif %}
+    </section>
+
+    {# Importação em massa #}
+    <section class="cartao" aria-labelledby="ct-import">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="ct-import">{% texto "email_marketing.contatos.importar_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'email_marketing:contatos' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.emails.id_for_label }}">{{ form.emails.label }}</label>
+          {{ form.emails }}
+          {% if form.emails.help_text %}<p class="campo__ajuda">{{ form.emails.help_text }}</p>{% endif %}
+          {% for erro in form.emails.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">
+          {% include "parciais/_icones.html" with nome_icone="usuario-mais" only %}
+          <span>Importar contatos</span>
+        </button>
+      </form>
+
+      <p class="em-fraco" style="margin-top:14px">
+        Contatos já existentes (mesmo e-mail) são preservados; apenas os novos são
+        criados.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

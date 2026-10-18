@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Ficha de uma campanha (adendo 3 — MÓDULO 5).
+
+Contexto (de ``CampanhaDetailView``): ``campanha``; ``num_destinatarios`` (nº de
+destinatários inscritos AGORA); ``pode_enviar``; ``envios`` (amostra dos últimos
+EnvioEmail); ``pct_enviados``/``pct_falhas``.
+
+O envio é POST + CSRF com confirmação via ``data-confirmar`` (sem onsubmit
+inline). A prévia mostra o corpo HTML; os marcadores só são substituídos no envio.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">{% endblock %}
+
+{% block titulo %}{{ campanha.nome }}{% endblock %}
+{% block subtitulo %}{{ campanha.assunto }}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'email_marketing:campanhas' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  <section class="cartao ficha-topo">
+    <div class="ficha-topo__identidade">
+      <span class="avatar avatar--grande" style="background: var(--roxo)" aria-hidden="true">
+        {% include "parciais/_icones.html" with nome_icone="megafone" only %}
+      </span>
+      <div>
+        <h2 class="ficha-topo__nome">{{ campanha.nome }}</h2>
+        <p class="ficha-topo__meta">
+          Criada em {{ campanha.criado_em|date:"d/m/Y H:i" }}{% if campanha.enviada_em %} · Enviada em {{ campanha.enviada_em|date:"d/m/Y H:i" }}{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="ficha-topo__indicadores">
+      <span class="tag-status {{ campanha.classe_status }}">{{ campanha.get_status_display }}</span>
+    </div>
+  </section>
+
+  <div class="grade grade--dois-um">
+
+    <div class="coluna-principal">
+
+      {# Resultado / contadores #}
+      <section class="cartao" aria-labelledby="c-contadores">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-contadores">{% texto "email_marketing.campanha_detalhe.resultado_titulo" %}</h2></header>
+
+        <div class="em-contadores">
+          <div class="em-contador">
+            <div class="em-contador__valor">{{ campanha.total_destinatarios }}</div>
+            <div class="em-contador__rotulo">Destinatários</div>
+          </div>
+          <div class="em-contador">
+            <div class="em-contador__valor em-contador__valor--enviados">{{ campanha.total_enviados }}</div>
+            <div class="em-contador__rotulo">Enviados</div>
+          </div>
+          <div class="em-contador">
+            <div class="em-contador__valor em-contador__valor--falhas">{{ campanha.total_falhas }}</div>
+            <div class="em-contador__rotulo">Falhas</div>
+          </div>
+        </div>
+
+        {% if campanha.total_destinatarios %}
+          <div class="em-barra">
+            <div class="em-barra__topo"><span>Enviados</span><span>{{ pct_enviados }}%</span></div>
+            <div class="barra"><span class="barra__preenchida" style="width: {{ pct_enviados }}%; background: var(--verde);"></span></div>
+          </div>
+          {% if campanha.total_falhas %}
+            <div class="em-barra">
+              <div class="em-barra__topo"><span>Falhas</span><span>{{ pct_falhas }}%</span></div>
+              <div class="barra"><span class="barra__preenchida" style="width: {{ pct_falhas }}%; background: var(--vermelho);"></span></div>
+            </div>
+          {% endif %}
+        {% else %}
+          <p class="acoes__vazio">Esta campanha ainda não foi enviada.</p>
+        {% endif %}
+      </section>
+
+      {# Prévia do corpo #}
+      <section class="cartao" aria-labelledby="c-previa">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="c-previa">{% texto "email_marketing.campanha_detalhe.previa_titulo" %}</h2>
+          <span class="cartao__legenda-topo">Os marcadores são substituídos no envio</span>
+        </header>
+        {# HTML da campanha isolado em iframe sandbox (sem scripts, origem opaca) — nunca |safe direto na página. #}
+        <iframe class="em-previa" sandbox title="Prévia do corpo do e-mail" srcdoc="{{ campanha.corpo_html }}" style="width:100%;min-height:420px;"></iframe>
+      </section>
+
+      {# Amostra dos últimos envios #}
+      <section class="cartao cartao--tabela" aria-labelledby="c-envios">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-envios">{% texto "email_marketing.campanha_detalhe.envios_titulo" %}</h2></header>
+        <div class="tabela-rolagem">
+          <table class="tabela">
+            <thead>
+              <tr>
+                <th scope="col">E-mail</th>
+                <th scope="col">Status</th>
+                <th scope="col">Enviado em</th>
+                <th scope="col">Detalhe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for envio in envios %}
+                <tr>
+                  <td class="celula-truncar">{{ envio.email }}</td>
+                  <td><span class="tag-status {{ envio.classe_status }}">{{ envio.get_status_display }}</span></td>
+                  <td>{% if envio.enviado_em %}{{ envio.enviado_em|date:"d/m H:i" }}{% else %}—{% endif %}</td>
+                  <td class="em-fraco">{{ envio.erro|default:"—" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="tabela__vazio">Nenhum envio registrado ainda.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="coluna-lateral">
+
+      {# Ações #}
+      <section class="cartao" aria-labelledby="c-acoes">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-acoes">{% texto "email_marketing.campanha_detalhe.acoes_titulo" %}</h2></header>
+        <div class="acoes-email">
+          {% if pode_enviar %}
+            <form method="post" action="{% url 'email_marketing:campanha_enviar' campanha.pk %}"
+                  data-confirmar="Enviar esta campanha agora para {{ num_destinatarios }} destinatário(s)?">
+              {% csrf_token %}
+              <button type="submit" class="botao botao--primario botao--bloco">
+                {% include "parciais/_icones.html" with nome_icone="enviar" only %}
+                <span>Enviar campanha</span>
+              </button>
+            </form>
+            <p class="campo__ajuda" style="margin-top:10px">
+              Serão enviados para <strong>{{ num_destinatarios }}</strong> contato(s) inscrito(s) agora.
+            </p>
+          {% else %}
+            <p class="acoes__vazio">Esta campanha já foi enviada e não pode ser reenviada neste estado.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      {# Dados da campanha #}
+      <section class="cartao" aria-labelledby="c-dados">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-dados">{% texto "email_marketing.campanha_detalhe.configuracao_titulo" %}</h2></header>
+        <dl class="lista-dados">
+          <div class="lista-dados__item"><dt>Remetente</dt><dd>{{ campanha.configuracao.nome }}</dd></div>
+          <div class="lista-dados__item"><dt>Tipo</dt><dd>{{ campanha.configuracao.get_tipo_display }}</dd></div>
+          <div class="lista-dados__item"><dt>De</dt><dd>{{ campanha.configuracao.email_remetente }}</dd></div>
+          <div class="lista-dados__item"><dt>Lista</dt><dd>{% if campanha.lista %}{{ campanha.lista.nome }}{% else %}Todos os inscritos{% endif %}</dd></div>
+          <div class="lista-dados__item"><dt>Destinatários agora</dt><dd>{{ num_destinatarios }}</dd></div>
+        </dl>
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

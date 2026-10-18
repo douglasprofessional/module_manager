@@ -1,0 +1,63 @@
+{% load static nucleo_extras %}
+{% comment %}
+Barra superior do sistema (layout do pedido).
+
+Esquerda: botão de menu (mobile) + marca (logo enviado OU ícone padrão) + nome
+          editável do sistema (marca branca via ConfiguracaoSistema).
+Direita:  botão de Configurações + alternância de tema (claro/escuro) + bloco do
+          usuário (foto enviada OU iniciais + nome + papel).
+
+Variáveis (context processor ``navegacao``): site_nome, site_logo_url,
+tema_atual. Usa ``request.user`` para foto/nome.
+{% endcomment %}
+<header class="topo" role="banner">
+  <div class="topo__esquerda">
+    <button type="button" class="botao-menu" data-abrir-menu aria-label="{% texto "topo.abrir_menu" %}" aria-controls="barra-lateral" aria-expanded="false">
+      {% include "parciais/_icones.html" with nome_icone="menu" only %}
+    </button>
+    <a class="marca-topo" href="{% url 'nucleo:dashboard' %}" aria-label="{% texto "geral.ir_dashboard" nome=site_nome %}">
+      <span class="marca-topo__logo" aria-hidden="true">
+        {% if site_logo_url %}
+          <img src="{{ site_logo_url }}" alt="" class="marca-topo__img">
+        {% else %}
+          {% include "parciais/_icones.html" with nome_icone="marca" only %}
+        {% endif %}
+      </span>
+      <span class="marca-topo__nome">{{ site_nome }}</span>
+    </a>
+  </div>
+
+  <div class="topo__direita">
+    <a class="botao-icone" href="{% url 'nucleo:configuracoes' %}" aria-label="{% texto "topo.configuracoes_aria" %}" title="{% texto "topo.configuracoes_dica" %}">
+      {% include "parciais/_icones.html" with nome_icone="config" only %}
+    </a>
+
+    <form method="post" action="{% url 'nucleo:alternar_tema' %}" class="form-tema">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      {% if tema_atual == 'escuro' %}
+        <button type="submit" class="botao-icone" aria-label="{% texto "topo.tema_claro_aria" %}" title="{% texto "topo.tema_claro_dica" %}">
+          {% include "parciais/_icones.html" with nome_icone="sol" only %}
+        </button>
+      {% else %}
+        <button type="submit" class="botao-icone" aria-label="{% texto "topo.tema_escuro_aria" %}" title="{% texto "topo.tema_escuro_dica" %}">
+          {% include "parciais/_icones.html" with nome_icone="lua" only %}
+        </button>
+      {% endif %}
+    </form>
+
+    {% if request.user.is_authenticated %}
+      <a class="usuario" href="{% url 'contas:perfil' %}" aria-label="{% texto "topo.meu_perfil_aria" %}">
+        {% if request.user.foto_url %}
+          <img class="usuario__foto" src="{{ request.user.foto_url }}" alt="" aria-hidden="true">
+        {% else %}
+          <span class="usuario__avatar" aria-hidden="true">{{ request.user.nome_completo|default:request.user.email|iniciais }}</span>
+        {% endif %}
+        <span class="usuario__info">
+          <span class="usuario__nome">{{ request.user.nome_completo|default:request.user.email }}</span>
+          <span class="usuario__papel">{% if request.user.is_superuser %}{% texto "topo.papel_admin" %}{% else %}{% texto "topo.papel_equipe" %}{% endif %}</span>
+        </span>
+      </a>
+    {% endif %}
+  </div>
+</header>

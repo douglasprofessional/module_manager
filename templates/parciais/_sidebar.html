@@ -1,0 +1,107 @@
+{% load static nucleo_extras %}
+{% comment %}
+Barra lateral do sistema (layout do pedido).
+
+Estrutura:
+  - Marca no topo (logo/ícone + nome do sistema).
+  - Item fixo "Dashboard" (sempre primeiro).
+  - Seção "Configurações Gerais do Sistema" (perfil + configurações) — sempre visível.
+  - Uma seção por MÓDULO HABILITADO (``modulos_secoes``), separada por divisória,
+    com o nome do módulo em caixa alta e seus itens (ícones SVG).
+  - Seção "Conta" (Sair).
+
+Variáveis (context processor ``navegacao``): site_nome, site_logo_url,
+menu_geral, modulos_secoes, menu_conta, rota_atual.
+{% endcomment %}
+<aside class="barra-lateral" id="barra-lateral" aria-label="{% texto "menu.aria_principal" %}">
+  <div class="barra-lateral__topo">
+    <a class="marca" href="{% url 'nucleo:dashboard' %}" aria-label="{% texto "geral.ir_dashboard" nome=site_nome %}">
+      <span class="marca__icone" aria-hidden="true">
+        {% if site_logo_url %}
+          <img src="{{ site_logo_url }}" alt="" class="marca__img">
+        {% else %}
+          {% include "parciais/_icones.html" with nome_icone="marca" only %}
+        {% endif %}
+      </span>
+      <span class="marca__nome">{{ site_nome }}</span>
+    </a>
+    <button type="button" class="barra-lateral__fechar" data-fechar-menu aria-label="{% texto "menu.fechar_menu" %}">
+      {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    </button>
+  </div>
+
+  <nav class="menu" aria-label="{% texto "menu.aria_menu_principal" %}">
+    <ul class="menu__lista">
+      {# Item fixo Dashboard — sempre o primeiro. #}
+      <li>
+        <a class="menu__item {% if rota_atual == 'nucleo:dashboard' %}menu__item--ativo{% endif %}"
+           href="{% url 'nucleo:dashboard' %}"
+           {% if rota_atual == 'nucleo:dashboard' %}aria-current="page"{% endif %}>
+          <span class="menu__icone">{% include "parciais/_icones.html" with nome_icone="dashboard" only %}</span>
+          <span class="menu__rotulo">{% texto "menu.dashboard" %}</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  {# Primeira seção: Configurações Gerais do Sistema (sempre visível). #}
+  <div class="menu__separador">{% texto "menu.secao_geral" %}</div>
+  <nav class="menu" aria-label="{% texto "menu.aria_configuracoes" %}">
+    <ul class="menu__lista">
+      {% for item in menu_geral %}
+        <li>
+          <a class="menu__item {% if item.ativo %}menu__item--ativo{% endif %}"
+             href="{{ item.url }}"
+             {% if item.ativo %}aria-current="page"{% endif %}>
+            <span class="menu__icone">{% include "parciais/_icones.html" with nome_icone=item.icone only %}</span>
+            <span class="menu__rotulo">{{ item.rotulo }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  {# Uma seção por módulo habilitado, separada por divisória. #}
+  {% for secao in modulos_secoes %}
+    <div class="menu__separador">{{ secao.nome }}</div>
+    <nav class="menu" aria-label="{{ secao.nome }}">
+      <ul class="menu__lista">
+        {% for item in secao.itens %}
+          <li>
+            <a class="menu__item {% if item.ativo %}menu__item--ativo{% endif %}"
+               href="{{ item.url }}"
+               {% if item.ativo %}aria-current="page"{% endif %}>
+              <span class="menu__icone">{% include "parciais/_icones.html" with nome_icone=item.icone only %}</span>
+              <span class="menu__rotulo">{{ item.rotulo }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  {% endfor %}
+
+  <div class="menu__separador">{% texto "menu.secao_conta" %}</div>
+  <nav class="menu" aria-label="{% texto "menu.secao_conta" %}">
+    <ul class="menu__lista">
+      {% for item in menu_conta %}
+        <li>
+          {# Logout somente via POST + CSRF (um GET nunca encerra a sessão). #}
+          <form method="post" action="{{ item.url }}" class="form-sair">
+            {% csrf_token %}
+            <button type="submit" class="menu__item">
+              <span class="menu__icone">{% include "parciais/_icones.html" with nome_icone=item.icone only %}</span>
+              <span class="menu__rotulo">{{ item.rotulo }}</span>
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  <div class="cartao-ajuda">
+    <span class="cartao-ajuda__icone" aria-hidden="true">{% include "parciais/_icones.html" with nome_icone="ajuda" only %}</span>
+    <p class="cartao-ajuda__titulo">{% texto "menu.ajuda_titulo" %}</p>
+    <p class="cartao-ajuda__texto">{% texto "menu.ajuda_texto" %}</p>
+    <a class="cartao-ajuda__botao" href="mailto:suporte@localhost">{% texto "menu.ajuda_botao" %}</a>
+  </div>
+</aside>

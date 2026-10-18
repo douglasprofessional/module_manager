@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Lista de categorias do blog (gestão interna — somente staff).
+Contexto (da view ``category_list``): ``categorias`` (queryset anotado com ``num_posts``).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'blog/blog.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "blog.categorias.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "blog.categorias.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'blog:category_create' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Nova categoria</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "blog.categorias.categorias_titulo" %}</h2></header>
+
+    {% if categorias %}
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">Slug</th>
+              <th scope="col">Categoria pai</th>
+              <th scope="col">Posts</th>
+              <th scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in categorias %}
+              <tr>
+                <td><span class="celula-chamado__titulo">{{ c.name }}</span></td>
+                <td>{{ c.slug }}</td>
+                <td>{{ c.parent.name|default:'—' }}</td>
+                <td>{{ c.num_posts }}</td>
+                <td>
+                  <span class="tabela-acoes">
+                    <a class="botao botao--suave botao--pequeno" href="{% url 'blog:category_edit' c.pk %}">
+                      {% include "parciais/_icones.html" with nome_icone="editar" only %}<span>Editar</span>
+                    </a>
+                    <a class="botao botao--perigo botao--pequeno" href="{% url 'blog:category_delete' c.pk %}">
+                      {% include "parciais/_icones.html" with nome_icone="lixeira" only %}<span>Excluir</span>
+                    </a>
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="vazio-bloco">
+        <span class="vazio-bloco__icone" aria-hidden="true">
+          {% include "parciais/_icones.html" with nome_icone="categoria" only %}
+        </span>
+        <p>Nenhuma categoria ainda.</p>
+        <a class="botao botao--primario" href="{% url 'blog:category_create' %}">Criar a primeira</a>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

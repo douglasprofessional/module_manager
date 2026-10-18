@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Lista paginada de empresas (seção 13 da SPEC).
+
+Contexto (de ``EmpresaListView``): ``linhas`` (EmpresaLinha, seção 7, com pk,
+``problemas_badges``, ``nota_google`` e ``score``), ``page_obj`` /
+``is_paginated``, ``opcoes_status`` (choices), ``opcoes_problema``
+((slug, rótulo)), ``filtro_status``/``filtro_problema`` e ``querystring_filtros``.
+Textos: ``apps/nucleo/textos.py`` (prospeccao.lista).
+{% endcomment %}
+
+{% block titulo %}{% texto "prospeccao.lista.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "prospeccao.lista.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'prospeccao:nova_busca' %}">{% texto "prospeccao.lista.nova_busca" %}</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho cartao__cabecalho--filtros">
+      <h2 class="cartao__titulo">{% texto "prospeccao.lista.cartao_titulo" %}</h2>
+
+      <form class="filtros" method="get" role="search" aria-label="{% texto 'prospeccao.lista.filtro_aria' %}">
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-status">{% texto "prospeccao.lista.filtro_status" %}</label>
+          <select class="campo__entrada campo__entrada--select" id="filtro-status" name="status">
+            <option value="">{% texto "prospeccao.lista.todos" %}</option>
+            {% for valor, rotulo in opcoes_status %}
+              <option value="{{ valor }}" {% if valor == filtro_status %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filtros__campo">
+          <label class="filtros__rotulo" for="filtro-problema">{% texto "prospeccao.lista.filtro_problema" %}</label>
+          <select class="campo__entrada campo__entrada--select" id="filtro-problema" name="problema">
+            <option value="">{% texto "prospeccao.lista.todos" %}</option>
+            {% for slug, rotulo in opcoes_problema %}
+              <option value="{{ slug }}" {% if slug == filtro_problema %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filtros__acoes">
+          <button type="submit" class="botao botao--primario">{% texto "prospeccao.lista.filtrar" %}</button>
+          <a class="botao botao--suave" href="{% url 'prospeccao:lista' %}">{% texto "prospeccao.lista.limpar" %}</a>
+        </div>
+      </form>
+    </header>
+
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th scope="col">{% texto "prospeccao.lista.col_empresa" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_tempo" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_responsavel" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_email" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_instagram" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_dominio" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_whatsapp" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_nota" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_score" %}</th>
+            <th scope="col">{% texto "prospeccao.lista.col_problemas" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in linhas %}
+            <tr>
+              <td>
+                <span class="celula-empresa">
+                  <span class="avatar" style="background:{{ e.cor }}" aria-hidden="true">{{ e.inicial }}</span>
+                  {% if e.pk %}
+                    <a class="celula-empresa__nome" href="{% url 'prospeccao:detalhe' e.pk %}">{{ e.nome }}</a>
+                  {% else %}
+                    <span class="celula-empresa__nome">{{ e.nome }}</span>
+                  {% endif %}
+                </span>
+              </td>
+              <td>{{ e.tempo_mercado }}</td>
+              <td>{{ e.responsavel }}</td>
+              <td class="celula-truncar">{{ e.email }}</td>
+              <td>{{ e.instagram }}</td>
+              <td>{{ e.dominio }}</td>
+              <td>{{ e.whatsapp }}</td>
+              <td>{{ e.nota_google }}</td>
+              <td>{{ e.score }}</td>
+              <td>
+                <span class="badges">
+                  {% for p in e.problemas_badges %}
+                    <span class="badge badge--{{ p.cor }}">{{ p.rotulo }}</span>
+                  {% empty %}
+                    <span class="badge badge--verde">{% texto "prospeccao.problemas.nenhum" %}</span>
+                  {% endfor %}
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="10" class="tabela__vazio">{% texto "prospeccao.lista.vazio" %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="paginacao" aria-label="{% texto 'prospeccao.lista.paginacao_aria' %}">
+        {% if page_obj.has_previous %}
+          <a class="paginacao__link" href="?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">{% texto "prospeccao.lista.anterior" %}</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">{% texto "prospeccao.lista.anterior" %}</span>
+        {% endif %}
+
+        <span class="paginacao__atual">{% texto "prospeccao.lista.pagina" atual=page_obj.number total=page_obj.paginator.num_pages %}</span>
+
+        {% if page_obj.has_next %}
+          <a class="paginacao__link" href="?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.next_page_number }}">{% texto "prospeccao.lista.proxima" %}</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">{% texto "prospeccao.lista.proxima" %}</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

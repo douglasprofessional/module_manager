@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Painel (dashboard) do módulo de Prospecção.
+
+Contexto (da view ``painel``): ``config`` (ConfiguracaoProspeccao),
+``form_chave`` (ChaveGoogleForm — write-only), ``form_ia`` (IAForm),
+``form_limiares`` (LimiaresForm), ``origem_chave`` ("painel"/"ambiente"/""),
+``metricas`` ({"total", "cards": [{slug, rotulo, valor, pct, cor, url}]}) e
+``buscas`` (últimas buscas). Todos os POSTs vão para a própria view com o
+campo oculto ``acao``. Textos: ``apps/nucleo/textos.py`` (prospeccao.painel).
+{% endcomment %}
+
+{% block titulo %}{% texto "prospeccao.painel.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "prospeccao.painel.subtitulo" %}{% endblock %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'prospeccao/prospeccao.css' %}">{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'prospeccao:nova_busca' %}">{% texto "prospeccao.painel.nova_busca" %}</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# ---------------------------------------------------------------- Métricas do Google #}
+  <section class="cartao" aria-labelledby="p-metricas">
+    <header class="cartao__cabecalho">
+      <h2 class="cartao__titulo" id="p-metricas">{% texto "prospeccao.painel.metricas_titulo" %}</h2>
+      <form method="post" action="{% url 'prospeccao:painel' %}" class="linha-acao">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="recalcular">
+        <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.painel.recalcular" %}</button>
+      </form>
+    </header>
+    {% if metricas.total %}
+      <p class="cartao__desc">{% texto "prospeccao.painel.metricas_legenda" total=metricas.total %}</p>
+    {% else %}
+      <p class="cartao__desc">{% texto "prospeccao.painel.metricas_vazio" %}</p>
+    {% endif %}
+
+    <div class="metricas-google">
+      {% for card in metricas.cards %}
+        <a class="metrica-google metrica-google--{{ card.cor }}" href="{{ card.url }}">
+          <span class="metrica-google__valor">{{ card.valor }}</span>
+          <span class="metrica-google__rotulo">{{ card.rotulo }}</span>
+          <span class="metrica-google__barra" aria-hidden="true"><span style="width: {{ card.pct }}%"></span></span>
+          <span class="metrica-google__pct">{{ card.pct }}%</span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="grade grade--dois-um">
+
+    <div class="coluna-principal">
+      {# ------------------------------------------------------------ Chave do Google #}
+      <section class="cartao" aria-labelledby="p-chave">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="p-chave">{% texto "prospeccao.painel.chave_titulo" %}</h2>
+          {% if origem_chave == "painel" %}
+            <span class="pastilha pastilha--sim">{% texto "prospeccao.painel.chave_status_painel" %}</span>
+          {% elif origem_chave == "ambiente" %}
+            <span class="pastilha pastilha--neutro">{% texto "prospeccao.painel.chave_status_ambiente" %}</span>
+          {% else %}
+            <span class="pastilha pastilha--nao">{% texto "prospeccao.painel.chave_status_ausente" %}</span>
+          {% endif %}
+        </header>
+        <p class="cartao__desc">{% texto "prospeccao.painel.chave_desc" %}</p>
+
+        <form class="formulario" method="post" action="{% url 'prospeccao:painel' %}" autocomplete="off" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="salvar_chave_google">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form_chave.chave_google.id_for_label }}">{{ form_chave.chave_google.label }}</label>
+            {{ form_chave.chave_google }}
+            {% if form_chave.chave_google.help_text %}<p class="campo__ajuda">{{ form_chave.chave_google.help_text }}</p>{% endif %}
+            {% for erro in form_chave.chave_google.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="acoes-formulario">
+            <button type="submit" class="botao botao--primario">{% texto "prospeccao.painel.chave_salvar" %}</button>
+          </div>
+        </form>
+
+        {% if origem_chave %}
+          <div class="acoes-formulario acoes-formulario--separada">
+            <form method="post" action="{% url 'prospeccao:painel' %}" class="linha-acao">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="testar_chave_google">
+              <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.painel.chave_testar" %}</button>
+            </form>
+            {% if config.tem_chave_google %}
+              <form method="post" action="{% url 'prospeccao:painel' %}" class="linha-acao">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="remover_chave_google">
+                <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.painel.chave_remover" %}</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endif %}
+      </section>
+
+      {# ------------------------------------------------------------ Inteligência artificial #}
+      <section class="cartao" aria-labelledby="p-ia">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="p-ia">{% texto "prospeccao.painel.ia_titulo" %}</h2>
+          {% if config.ia_disponivel %}
+            <span class="pastilha pastilha--sim">{% texto "prospeccao.painel.ia_status_ativa" %}</span>
+          {% elif not config.ia_ativa %}
+            <span class="pastilha pastilha--neutro">{% texto "prospeccao.painel.ia_status_inativa" %}</span>
+          {% else %}
+            <span class="pastilha pastilha--neutro">{% texto "prospeccao.painel.ia_status_sem_chave" %}</span>
+          {% endif %}
+        </header>
+        <p class="cartao__desc">{% texto "prospeccao.painel.ia_desc" %}</p>
+
+        <form class="formulario" method="post" action="{% url 'prospeccao:painel' %}" autocomplete="off" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="salvar_ia">
+          {% if form_ia.non_field_errors %}
+            <div class="mensagem mensagem--error" role="alert">
+              {% for erro in form_ia.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form_ia.ia_chave.id_for_label }}">{{ form_ia.ia_chave.label }}</label>
+            {{ form_ia.ia_chave }}
+            {% if form_ia.ia_chave.help_text %}<p class="campo__ajuda">{{ form_ia.ia_chave.help_text }}</p>{% endif %}
+            {% for erro in form_ia.ia_chave.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form_ia.ia_modelo.id_for_label }}">{{ form_ia.ia_modelo.label }}</label>
+            {{ form_ia.ia_modelo }}
+            {% if form_ia.ia_modelo.help_text %}<p class="campo__ajuda">{{ form_ia.ia_modelo.help_text }}</p>{% endif %}
+            {% for erro in form_ia.ia_modelo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+
+          <div class="campo">
+            <label class="campo-check">
+              {{ form_ia.ia_ativa }}
+              <span>{{ form_ia.ia_ativa.label }}</span>
+            </label>
+            {% if form_ia.ia_ativa.help_text %}<p class="campo__ajuda">{{ form_ia.ia_ativa.help_text }}</p>{% endif %}
+          </div>
+
+          <div class="acoes-formulario">
+            <button type="submit" class="botao botao--primario">{% texto "prospeccao.painel.ia_salvar" %}</button>
+          </div>
+        </form>
+
+        {% if config.tem_ia_chave %}
+          <div class="acoes-formulario acoes-formulario--separada">
+            <form method="post" action="{% url 'prospeccao:painel' %}" class="linha-acao">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="remover_chave_ia">
+              <button type="submit" class="botao botao--suave botao--pequeno">{% texto "prospeccao.painel.ia_remover" %}</button>
+            </form>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="coluna-lateral">
+      {# ------------------------------------------------------------ Critérios #}
+      <section class="cartao" aria-labelledby="p-criterios">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="p-criterios">{% texto "prospeccao.painel.limiares_titulo" %}</h2>
+        </header>
+        <p class="cartao__desc">{% texto "prospeccao.painel.limiares_desc" %}</p>
+
+        <form class="formulario" method="post" action="{% url 'prospeccao:painel' %}" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="salvar_limiares">
+          {% for campo in form_limiares %}
+            <div class="campo">
+              <label class="campo__rotulo" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.help_text %}<p class="campo__ajuda">{{ campo.help_text }}</p>{% endif %}
+              {% for erro in campo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="botao botao--primario botao--bloco">{% texto "prospeccao.painel.limiares_salvar" %}</button>
+        </form>
+      </section>
+
+      {# ------------------------------------------------------------ Buscas recentes #}
+      <section class="cartao" aria-labelledby="p-buscas">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="p-buscas">{% texto "prospeccao.nova_busca.recentes_titulo" %}</h2>
+        </header>
+        <ul class="flags">
+          {% for busca in buscas %}
+            <li class="flags__item">
+              <span>{{ busca.termo }} · {{ busca.localizacao }}</span>
+              <span class="tag-status tag-status--{{ busca.status }}">{{ busca.get_status_display }} ({{ busca.total_resultados }})</span>
+            </li>
+          {% empty %}
+            <li class="flags__item"><span>{% texto "prospeccao.nova_busca.vazio" %}</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

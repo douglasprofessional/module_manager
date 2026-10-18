@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Formulário de criação/edição de servidor (adendo 2 — MÓDULO 3).
+
+Contexto (das views ``novo``/``editar``): ``form`` (ServidorForm), ``modo``
+("novo"|"editar") e, na edição, ``servidor``.
+
+IMPORTANTE: os segredos (senha/chave/passphrase) são WRITE-ONLY. Ao editar,
+deixe-os EM BRANCO para MANTER a credencial atual — só sobrescrevem se
+preenchidos. Eles nunca são exibidos.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'monitoramento/monitoramento.css' %}">{% endblock %}
+
+{% block titulo %}{% if modo == 'editar' %}{% texto "monitoramento.form.titulo_editar" %}{% else %}{% texto "monitoramento.form.titulo_novo" %}{% endif %}{% endblock %}
+{% block subtitulo %}{% texto "monitoramento.form.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% if modo == 'editar' %}{% url 'monitoramento:detalhe' servidor.pk %}{% else %}{% url 'monitoramento:lista' %}{% endif %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--um-dois">
+
+    <section class="cartao" aria-labelledby="s-form">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-form">{% texto "monitoramento.form.dados_titulo" %}</h2></header>
+
+      <form class="formulario" method="post"
+            action="{% if modo == 'editar' %}{% url 'monitoramento:editar' servidor.pk %}{% else %}{% url 'monitoramento:novo' %}{% endif %}"
+            novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% for erro in form.nome.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="grade grade--dois-um mon-form-linha">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.host.id_for_label }}">{{ form.host.label }}</label>
+            {{ form.host }}
+            {% for erro in form.host.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.porta_ssh.id_for_label }}">{{ form.porta_ssh.label }}</label>
+            {{ form.porta_ssh }}
+            {% for erro in form.porta_ssh.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grade grade--dois-um mon-form-linha">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.usuario.id_for_label }}">{{ form.usuario.label }}</label>
+            {{ form.usuario }}
+            {% for erro in form.usuario.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.metodo_auth.id_for_label }}">{{ form.metodo_auth.label }}</label>
+            {{ form.metodo_auth }}
+            {% for erro in form.metodo_auth.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </div>
+
+        {# --- Segredos (write-only) --- #}
+        <fieldset class="mon-fieldset">
+          <legend class="mon-fieldset__legenda">{% texto "monitoramento.form.credenciais_legenda" %}</legend>
+          <p class="campo__ajuda">
+            {% if modo == 'editar' %}
+              Deixe os campos de segredo em branco para <strong>manter</strong> a credencial atual.
+            {% else %}
+              Informe a senha OU a chave privada, conforme o método escolhido.
+            {% endif %}
+          </p>
+
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.senha.id_for_label }}">{{ form.senha.label }}</label>
+            {{ form.senha }}
+            {% if form.senha.help_text %}<p class="campo__ajuda">{{ form.senha.help_text }}</p>{% endif %}
+            {% for erro in form.senha.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.chave_privada.id_for_label }}">{{ form.chave_privada.label }}</label>
+            {{ form.chave_privada }}
+            {% if form.chave_privada.help_text %}<p class="campo__ajuda">{{ form.chave_privada.help_text }}</p>{% endif %}
+            {% for erro in form.chave_privada.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.passphrase.id_for_label }}">{{ form.passphrase.label }}</label>
+            {{ form.passphrase }}
+            {% if form.passphrase.help_text %}<p class="campo__ajuda">{{ form.passphrase.help_text }}</p>{% endif %}
+            {% for erro in form.passphrase.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </fieldset>
+
+        <div class="grade grade--dois-um mon-form-linha">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.provedor.id_for_label }}">{{ form.provedor.label }}</label>
+            {{ form.provedor }}
+            {% for erro in form.provedor.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.tags.id_for_label }}">{{ form.tags.label }}</label>
+            {{ form.tags }}
+            {% for erro in form.tags.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.observacoes.id_for_label }}">{{ form.observacoes.label }}</label>
+          {{ form.observacoes }}
+          {% for erro in form.observacoes.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <label class="campo-check">
+          {{ form.ativo }}
+          <span>{{ form.ativo.label }}</span>
+        </label>
+
+        {% if modo == 'editar' %}
+          <label class="campo-check">
+            {{ form.resetar_host_key }}
+            <span>{{ form.resetar_host_key.label }}</span>
+          </label>
+          {% if form.resetar_host_key.help_text %}<p class="campo__ajuda">{{ form.resetar_host_key.help_text }}</p>{% endif %}
+        {% endif %}
+
+        <button type="submit" class="botao botao--primario botao--bloco">
+          {% if modo == 'editar' %}Salvar alterações{% else %}Cadastrar servidor{% endif %}
+        </button>
+      </form>
+    </section>
+
+    {# Dica de segurança #}
+    <section class="cartao cartao--destaque" aria-labelledby="s-dica">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="s-dica">{% texto "monitoramento.form.seguranca_titulo" %}</h2></header>
+      <p class="destaque__texto">
+        As credenciais são <strong>cifradas</strong> (Fernet) antes de gravar e
+        <strong>nunca</strong> são exibidas novamente — nem aqui, nem no admin.
+      </p>
+      <p class="destaque__texto">
+        Na primeira coleta, o sistema aprende a <strong>host key</strong> do
+        servidor (TOFU) e passa a recusar a coleta se ela mudar (proteção contra
+        ataque man-in-the-middle). A coleta usa um comando fixo, somente leitura.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

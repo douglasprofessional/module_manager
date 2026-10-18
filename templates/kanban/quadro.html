@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Board de um quadro (adendo docs/SPEC_MODULOS.md — MÓDULO 1).
+
+Contexto (de ``QuadroDetailView``): ``quadro``; ``colunas`` (lista de dicts
+``{coluna, cartoes, anterior_id, proximo_id}``); ``opcoes_prioridade``.
+
+Colunas roláveis lado a lado (.kanban-board). Cada cartão exibe prioridade,
+responsável e prazo. Botões "Concluir" e mover ◀ ▶ funcionam via POST (fallback
+sem JS). O kanban.js acrescenta arrastar-e-soltar (drag-and-drop) opcional.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'kanban/kanban.css' %}">{% endblock %}
+
+{% block titulo %}{{ quadro.nome }}{% endblock %}
+{% block subtitulo %}{% texto "kanban.quadro.subtitulo_padrao" as subtitulo_padrao %}{{ quadro.descricao|default:subtitulo_padrao }}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'kanban:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar aos quadros</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="kanban-board" data-kanban-board>
+    {% for item in colunas %}
+      <section class="kanban-coluna" data-coluna-id="{{ item.coluna.id }}" aria-label="Coluna {{ item.coluna.nome }}">
+        <header class="kanban-coluna__cabecalho">
+          <span class="kanban-coluna__ponto" style="background:{{ item.coluna.cor|default:'#7c5cff' }}" aria-hidden="true"></span>
+          <h2 class="kanban-coluna__nome">{{ item.coluna.nome }}</h2>
+          <span class="kanban-coluna__contador">{{ item.total_cartoes }}</span>
+          {% if item.estourou_wip %}
+            <span class="badge badge--amarelo kanban-coluna__wip">WIP {{ item.total_cartoes }}/{{ item.coluna.limite_wip }}</span>
+          {% elif item.coluna.limite_wip %}
+            <span class="kanban-coluna__wip-leve">/{{ item.coluna.limite_wip }}</span>
+          {% endif %}
+        </header>
+
+        <div class="kanban-coluna__lista" data-coluna-lista>
+          {% for cartao in item.cartoes %}
+            <article class="kanban-cartao{% if cartao.concluido %} kanban-cartao--concluido{% endif %}"
+                     data-cartao-id="{{ cartao.id }}"
+                     data-mover-url="{% url 'kanban:mover_cartao' cartao.id %}"
+                     draggable="true">
+              <div class="kanban-cartao__topo">
+                <span class="badge {{ cartao.classe_badge }}">{{ cartao.get_prioridade_display }}</span>
+                {% if cartao.atrasado %}
+                  <span class="badge badge--vermelho kanban-cartao__atraso">
+                    {% include "parciais/_icones.html" with nome_icone="alerta" only %}
+                    <span>Atrasado</span>
+                  </span>
+                {% endif %}
+              </div>
+
+              <p class="kanban-cartao__titulo">{{ cartao.titulo }}</p>
+              {% if cartao.descricao %}<p class="kanban-cartao__descricao">{{ cartao.descricao }}</p>{% endif %}
+
+              <div class="kanban-cartao__rodape">
+                <span class="kanban-cartao__responsavel">
+                  {% if cartao.responsavel %}
+                    <span class="avatar kanban-cartao__avatar" title="{{ cartao.responsavel.get_full_name }}" aria-hidden="true">{{ cartao.iniciais_responsavel }}</span>
+                    <span class="kanban-cartao__responsavel-nome">{{ cartao.responsavel.get_short_name }}</span>
+                  {% else %}
+                    <span class="kanban-cartao__sem-responsavel">Sem responsável</span>
+                  {% endif %}
+                </span>
+                {% if cartao.prazo %}
+                  <span class="kanban-cartao__prazo{% if cartao.atrasado %} kanban-cartao__prazo--atraso{% endif %}">
+                    {% include "parciais/_icones.html" with nome_icone="calendario" only %}
+                    <span>{{ cartao.prazo|date:"d/m/Y" }}</span>
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="kanban-cartao__acoes">
+                <div class="kanban-cartao__mover">
+                  {% if item.anterior_id %}
+                    <form method="post" action="{% url 'kanban:mover_cartao' cartao.id %}" class="linha-acao">
+                      {% csrf_token %}
+                      <input type="hidden" name="coluna_destino" value="{{ item.anterior_id }}">
+                      <button type="submit" class="botao botao--suave botao--pequeno" aria-label="Mover para a coluna anterior">◀</button>
+                    </form>
+                  {% endif %}
+                  {% if item.proximo_id %}
+                    <form method="post" action="{% url 'kanban:mover_cartao' cartao.id %}" class="linha-acao">
+                      {% csrf_token %}
+                      <input type="hidden" name="coluna_destino" value="{{ item.proximo_id }}">
+                      <button type="submit" class="botao botao--suave botao--pequeno" aria-label="Mover para a próxima coluna">▶</button>
+                    </form>
+                  {% endif %}
+                </div>
+                <form method="post" action="{% url 'kanban:concluir_cartao' cartao.id %}" class="linha-acao" data-form-concluir>
+                  {% csrf_token %}
+                  <button type="submit" class="botao botao--pequeno {% if cartao.concluido %}botao--suave{% else %}botao--primario{% endif %}">
+                    {% if cartao.concluido %}Reabrir{% else %}Concluir{% endif %}
+                  </button>
+                </form>
+              </div>
+            </article>
+          {% empty %}
+            <p class="kanban-coluna__vazia">Sem cartões.</p>
+          {% endfor %}
+        </div>
+
+        <form class="kanban-add-cartao" method="post" action="{% url 'kanban:novo_cartao' item.coluna.id %}">
+          {% csrf_token %}
+          <input type="text" name="titulo" class="campo__entrada kanban-add-cartao__titulo" placeholder="Novo cartão…" maxlength="160" required>
+          <div class="kanban-add-cartao__linha">
+            <select name="prioridade" class="campo__entrada campo__entrada--select" aria-label="Prioridade do cartão">
+              {% for valor, rotulo in opcoes_prioridade %}
+                <option value="{{ valor }}" {% if valor == 'media' %}selected{% endif %}>{{ rotulo }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="botao botao--suave botao--pequeno">Adicionar</button>
+          </div>
+        </form>
+      </section>
+    {% empty %}
+      <p class="kanban-board__vazio">Este quadro ainda não tem colunas. Adicione a primeira ao lado.</p>
+    {% endfor %}
+
+    {# Coluna para adicionar novas colunas ao quadro #}
+    <section class="kanban-coluna kanban-coluna--nova">
+      <header class="kanban-coluna__cabecalho">
+        <h2 class="kanban-coluna__nome">{% texto "kanban.quadro.nova_coluna_titulo" %}</h2>
+      </header>
+      <form class="kanban-add-coluna" method="post" action="{% url 'kanban:nova_coluna' quadro.id %}">
+        {% csrf_token %}
+        <input type="text" name="nome" class="campo__entrada" placeholder="Nome da coluna" maxlength="80" required>
+        <div class="kanban-add-coluna__linha">
+          <input type="color" name="cor" class="campo__entrada kanban-add-coluna__cor" value="#7c5cff" aria-label="Cor da coluna">
+          <input type="number" name="limite_wip" class="campo__entrada" placeholder="WIP" min="1" step="1" aria-label="Limite de WIP (opcional)">
+        </div>
+        <button type="submit" class="botao botao--primario botao--bloco botao--pequeno">Adicionar coluna</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'kanban/kanban.js' %}" defer></script>{% endblock %}

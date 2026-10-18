@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Formulário de criação de campanha (adendo 3 — MÓDULO 5).
+
+Contexto (da view ``campanha_nova``): ``form`` (CampanhaForm) e ``modo``.
+Os corpos usam textarea; a nota lateral lista os marcadores disponíveis, que são
+substituídos no envio por ``str.replace`` (sem motor de template — sem SSTI).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "email_marketing.campanha_form.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "email_marketing.campanha_form.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'email_marketing:campanhas' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    <section class="cartao" aria-labelledby="c-form">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-form">{% texto "email_marketing.campanha_form.dados_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'email_marketing:campanha_nova' %}" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% for erro in form.nome.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.assunto.id_for_label }}">{{ form.assunto.label }}</label>
+          {{ form.assunto }}
+          {% for erro in form.assunto.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.corpo_html.id_for_label }}">{{ form.corpo_html.label }}</label>
+          {{ form.corpo_html }}
+          {% for erro in form.corpo_html.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.corpo_texto.id_for_label }}">{{ form.corpo_texto.label }}</label>
+          {{ form.corpo_texto }}
+          {% if form.corpo_texto.help_text %}<p class="campo__ajuda">{{ form.corpo_texto.help_text }}</p>{% endif %}
+          {% for erro in form.corpo_texto.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="grade grade--dois-um">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.configuracao.id_for_label }}">{{ form.configuracao.label }}</label>
+            {{ form.configuracao }}
+            {% for erro in form.configuracao.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.lista.id_for_label }}">{{ form.lista.label }}</label>
+            {{ form.lista }}
+            {% if form.lista.help_text %}<p class="campo__ajuda">{{ form.lista.help_text }}</p>{% endif %}
+            {% for erro in form.lista.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">Criar campanha</button>
+      </form>
+    </section>
+
+    <div class="coluna-lateral">
+
+    {# Começar a partir de um modelo (template) da biblioteca #}
+    {% if templates %}
+    <section class="cartao" aria-labelledby="c-modelos">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-modelos">{% texto "email_marketing.campanha_form.modelos_titulo" %}</h2></header>
+      <p class="cartao__desc">Escolha um dos modelos prontos (100% editáveis) para preencher o corpo.</p>
+      <form method="get" action="{% url 'email_marketing:campanha_nova' %}">
+        <div class="campo-grupo">
+          <label class="rotulo" for="sel-modelo">Modelo</label>
+          <select class="campo" id="sel-modelo" name="template">
+            {% for t in templates %}
+              <option value="{{ t.pk }}">{{ t.nome }} — {{ t.get_categoria_display }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-acoes">
+          <button type="submit" class="botao botao--suave">Aplicar modelo</button>
+          <a class="botao botao--suave" href="{% url 'email_marketing:templates' %}">Ver biblioteca</a>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+
+    {# Nota: marcadores disponíveis #}
+    <section class="cartao em-nota" aria-labelledby="c-marcadores">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-marcadores">{% texto "email_marketing.campanha_form.marcadores_titulo" %}</h2></header>
+      <p class="em-nota__texto">
+        Personalize o assunto e o corpo com os marcadores abaixo. Eles são
+        substituídos por destinatário no envio (sem motor de template — os dados
+        do contato são escapados no HTML).
+      </p>
+      <div class="em-marcadores">
+        <span class="em-marcador">{% verbatim %}{{ nome }}{% endverbatim %}</span>
+        <span class="em-marcador">{% verbatim %}{{ email }}{% endverbatim %}</span>
+        <span class="em-marcador">{% verbatim %}{{ empresa }}{% endverbatim %}</span>
+        <span class="em-marcador">{% verbatim %}{{ link_descadastro }}{% endverbatim %}</span>
+      </div>
+      <p class="em-nota__texto" style="margin-top:12px">
+        Inclua sempre o <span class="em-marcador">{% verbatim %}{{ link_descadastro }}{% endverbatim %}</span>
+        no rodapé para permitir o opt-out (descadastro público).
+      </p>
+    </section>
+
+    </div>{# fim coluna-lateral #}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

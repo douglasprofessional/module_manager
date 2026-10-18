@@ -1,0 +1,22 @@
+# Dependências da Plataforma (sistema modular unificado).
+# Núcleo herdado do modulos + dependências dos módulos integrados.
+
+Django>=5.0,<6.0
+python-dotenv>=1.0
+requests>=2.31
+cryptography>=42.0        # Fernet (segredos cifrados: senha SMTP, chaves de API)
+tldextract>=5.1
+gunicorn>=21.2           # produção (WSGI)
+whitenoise>=6.6          # servir estáticos em produção
+psycopg[binary]>=3.1     # driver PostgreSQL (Docker Compose / EasyPanel / VPS)
+paramiko>=3.4           # SSH do módulo de Monitoramento de VPS
+redis>=5.0              # cache/sessão compartilhados entre workers (Redis)
+anthropic>=1.13,<2      # IA generativa (Claude) dos diagnósticos da Prospecção (SDK oficial)
+
+# Módulo de Blog (djangopress): sanitização de HTML e parsing.
+bleach>=6.1             # sanitização do HTML dos posts (anti-XSS)
+beautifulsoup4>=4.12    # extração/validação de conteúdo (SEO/GEO/A11y)
+Pillow>=10.3            # ImageField (imagem de destaque/OG dos posts)
+
+python-decouple
+dj-database-url

@@ -1,0 +1,82 @@
+{% load static nucleo_extras %}
+<!doctype html>
+<html lang="pt-br" data-tema="{{ tema_atual|default:'claro' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  {% texto "geral.marca_padrao" as marca_padrao %}<title>{% texto "contas.login.titulo_aba" %} · {{ site_nome|default:marca_padrao }}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Staatliches&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body class="tela-login">
+  <main class="login" role="main">
+    <section class="login__cartao" aria-labelledby="login-titulo">
+      <div class="login__marca">
+        <span class="marca__icone marca__icone--grande" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icone">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" />
+          </svg>
+
+        </span>
+        <span class="login__marca-nome">Gerenciador de Módulos</span>
+      </div>
+
+      <h1 class="login__titulo" id="login-titulo">{% texto "contas.login.titulo" %}</h1>
+      <p class="login__subtitulo">{% texto "contas.login.subtitulo" %}</p>
+
+      {% if messages %}
+        <div class="mensagens" role="status" aria-live="polite">
+          {% for mensagem in messages %}
+            <div class="mensagem mensagem--{{ mensagem.tags|default:'info' }}">
+              <span class="mensagem__texto">{{ mensagem }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="mensagem mensagem--error" role="alert">
+          {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form class="login__form" method="post" action="{% url 'contas:login' %}" novalidate>
+        {% csrf_token %}
+        {% if proximo %}<input type="hidden" name="next" value="{{ proximo }}">{% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.email.id_for_label }}">E-mail</label>
+          <input class="campo__entrada" type="email" name="{{ form.email.html_name }}"
+                 id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}"
+                 autocomplete="email" autofocus required
+                 placeholder="voce@empresa.com.br"
+                 {% if form.email.errors %}aria-invalid="true"{% endif %}>
+          {% if form.email.errors %}
+            <p class="campo__erro">{% for erro in form.email.errors %}{{ erro }}{% endfor %}</p>
+          {% endif %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.senha.id_for_label }}">Senha</label>
+          <input class="campo__entrada" type="password" name="{{ form.senha.html_name }}"
+                 id="{{ form.senha.id_for_label }}" autocomplete="current-password" required
+                 placeholder="••••••••"
+                 {% if form.senha.errors %}aria-invalid="true"{% endif %}>
+          {% if form.senha.errors %}
+            <p class="campo__erro">{% for erro in form.senha.errors %}{{ erro }}{% endfor %}</p>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="botao botao--primario botao--bloco">Entrar</button>
+      </form>
+
+      <p class="login__rodape">{% texto "contas.login.rodape" %}</p>
+    </section>
+  </main>
+</body>
+</html>

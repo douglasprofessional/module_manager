@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+
+{% block titulo %}{% texto "nucleo.configuracoes.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "nucleo.configuracoes.subtitulo" %}{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# ---------------------------------------------------------------- Marca #}
+  <section class="cartao">
+    <div class="cartao__cabecalho">
+      <h2 class="cartao__titulo">{% texto "nucleo.configuracoes.identidade_titulo" %}</h2>
+    </div>
+    <p class="cartao__desc">Personalize o nome, o logo e o tema padrão exibidos para todos os usuários.</p>
+
+    <form method="post" action="{% url 'nucleo:configuracoes' %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.nome_sistema.id_for_label }}">Nome do sistema</label>
+          {{ form.nome_sistema }}
+          {% for erro in form.nome_sistema.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+          <p class="ajuda-campo">Aparece na barra superior, na aba do navegador e nos e-mails.</p>
+        </div>
+
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.tema_padrao.id_for_label }}">Tema padrão</label>
+          {{ form.tema_padrao }}
+          {% for erro in form.tema_padrao.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+          <p class="ajuda-campo">Aplicado a quem ainda não escolheu um tema próprio.</p>
+        </div>
+      </div>
+
+      <div class="campo-grupo" style="margin-top:18px;">
+        <label class="rotulo" for="{{ form.logo.id_for_label }}">Logo (PNG, JPG, WEBP ou SVG — até 2 MB)</label>
+        {{ form.logo }}
+        {% for erro in form.logo.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        <div class="preview-logo">
+          <span class="preview-logo__caixa">
+            {% if config.logo %}
+              <img src="{{ config.logo.url }}" alt="Logo atual">
+            {% else %}
+              {% include "parciais/_icones.html" with nome_icone="marca" only %}
+            {% endif %}
+          </span>
+          <span class="ajuda-campo">
+            {% if config.logo %}Logo atual. Envie um novo arquivo para substituir.{% else %}Nenhum logo enviado — usando o ícone padrão.{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--primario">
+          <span class="menu__icone" style="width:auto;height:auto;background:none;color:inherit;">{% include "parciais/_icones.html" with nome_icone="salvar" only %}</span>
+          Salvar identidade
+        </button>
+      </div>
+    </form>
+  </section>
+
+  {# -------------------------------------------------------------- Módulos #}
+  <section class="cartao">
+    <div class="cartao__cabecalho">
+      <h2 class="cartao__titulo">{% texto "nucleo.configuracoes.modulos_titulo" %}</h2>
+    </div>
+    <p class="cartao__desc">
+      Habilite os módulos que deseja usar. Por padrão, todos começam desabilitados.
+      Desabilitar um módulo apenas o oculta do menu — <strong>não</strong> apaga os dados.
+      A exclusão de dados é uma ação separada e irreversível.
+    </p>
+
+    {% if modulos %}
+      <div class="config-lista">
+        {% for m in modulos %}
+          <div class="config-modulo {% if m.suporta_exclusao %}zona-perigo{% endif %}">
+            <span class="config-modulo__icone">{% include "parciais/_icones.html" with nome_icone=m.icone only %}</span>
+            <div class="config-modulo__corpo">
+              <div class="config-modulo__nome">
+                {{ m.nome }}
+                {% if m.habilitado %}
+                  <span class="pilula-estado pilula-estado--on">Ativo</span>
+                {% else %}
+                  <span class="pilula-estado pilula-estado--off">Inativo</span>
+                {% endif %}
+              </div>
+              {% if m.descricao %}<div class="config-modulo__desc">{{ m.descricao }}</div>{% endif %}
+
+              {% if m.suporta_exclusao %}
+                <details class="detalhes-perigo">
+                  <summary>Excluir todos os dados deste módulo…</summary>
+                  <form class="detalhes-perigo__corpo" method="post" action="{% url 'nucleo:excluir_dados_modulo' %}"
+                        data-confirmar="Excluir DEFINITIVAMENTE todos os dados do módulo {{ m.nome }}? Esta ação não pode ser desfeita.">
+                    {% csrf_token %}
+                    <input type="hidden" name="slug" value="{{ m.slug }}">
+                    <input type="text" class="campo botao--pequeno" name="confirmacao" placeholder="Digite EXCLUIR" style="max-width:170px;" autocomplete="off">
+                    <button type="submit" class="botao botao--perigo botao--pequeno">
+                      {% include "parciais/_icones.html" with nome_icone="lixeira" only %} Excluir dados
+                    </button>
+                  </form>
+                </details>
+              {% endif %}
+            </div>
+
+            <div class="config-modulo__acoes">
+              <form method="post" action="{% url 'nucleo:alternar_modulo' %}">
+                {% csrf_token %}
+                <input type="hidden" name="slug" value="{{ m.slug }}">
+                <input type="hidden" name="habilitar" value="{% if m.habilitado %}0{% else %}1{% endif %}">
+                <button type="submit" class="interruptor-botao {% if m.habilitado %}is-on{% endif %}"
+                        aria-label="{% if m.habilitado %}Desabilitar{% else %}Habilitar{% endif %} módulo {{ m.nome }}">
+                  <span class="interruptor__trilha" aria-hidden="true"></span>
+                  <span class="interruptor__texto">{% if m.habilitado %}Ativado{% else %}Desativado{% endif %}</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="vazio-bloco">
+        <span class="vazio-bloco__icone">{% include "parciais/_icones.html" with nome_icone="dashboard" only %}</span>
+        <p>Nenhum módulo registrado no sistema.</p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

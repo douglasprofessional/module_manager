@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Configurações de envio (adendo 3 — MÓDULO 5).
+
+Contexto (da view ``configuracoes``): ``form`` (ConfiguracaoEnvioForm — a senha é
+write-only) e ``configuracoes`` (queryset). A senha SMTP NUNCA é exibida;
+mostramos apenas se há senha configurada (``config.tem_senha``). Cada config traz
+um pequeno form POST "Enviar teste".
+
+O bloco [data-campos-smtp] é mostrado/ocultado pelo JS conforme o tipo escolhido
+([data-tipo-envio]); sem JS, tudo aparece e o backend valida.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "email_marketing.configuracoes.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "email_marketing.configuracoes.subtitulo" %}{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    {# Lista de configurações #}
+    <section class="cartao cartao--tabela" aria-labelledby="cfg-lista">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="cfg-lista">{% texto "email_marketing.configuracoes.remetentes_titulo" %}</h2></header>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">De</th>
+              <th scope="col">Senha</th>
+              <th scope="col">Ativa</th>
+              <th scope="col">Enviar teste</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for config in configuracoes %}
+              <tr>
+                <td class="celula-empresa__nome">{{ config.nome }}</td>
+                <td><span class="badge {% if config.tipo == 'smtp' %}badge--roxo{% else %}badge--azul{% endif %}">{{ config.get_tipo_display }}</span></td>
+                <td class="celula-truncar">{{ config.email_remetente }}</td>
+                <td>
+                  {% if config.tipo == 'smtp' %}
+                    {% if config.tem_senha %}
+                      <span class="pastilha pastilha--sim">Configurada</span>
+                    {% else %}
+                      <span class="pastilha pastilha--nao">Ausente</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="pastilha pastilha--neutro">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if config.ativo %}
+                    <span class="pastilha pastilha--sim">Ativa</span>
+                  {% else %}
+                    <span class="pastilha pastilha--neutro">Inativa</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form class="em-form-teste" method="post" action="{% url 'email_marketing:config_testar' config.pk %}">
+                    {% csrf_token %}
+                    <input class="campo__entrada" type="email" name="destinatario" placeholder="voce@empresa.com.br" required aria-label="E-mail de teste">
+                    <button type="submit" class="botao botao--suave botao--pequeno">
+                      {% include "parciais/_icones.html" with nome_icone="enviar" only %}
+                      <span>Testar</span>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="tabela__vazio">Nenhuma configuração cadastrada ainda.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="em-fraco" style="margin-top:14px">
+        O tipo <strong>Console (teste)</strong> imprime o e-mail no log do servidor
+        em vez de enviar por SMTP — ideal para testar o envio em massa localmente.
+      </p>
+    </section>
+
+    {# Formulário de nova configuração #}
+    <section class="cartao" aria-labelledby="cfg-nova">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="cfg-nova">{% texto "email_marketing.configuracoes.nova_titulo" %}</h2></header>
+
+      <form class="formulario" method="post" action="{% url 'email_marketing:configuracoes' %}" autocomplete="off" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensagem mensagem--error" role="alert">
+            {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% for erro in form.nome.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+          {{ form.tipo }}
+          {% if form.tipo.help_text %}<p class="campo__ajuda">{{ form.tipo.help_text }}</p>{% endif %}
+          {% for erro in form.tipo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo">
+          <label class="campo__rotulo" for="{{ form.email_remetente.id_for_label }}">{{ form.email_remetente.label }}</label>
+          {{ form.email_remetente }}
+          {% for erro in form.email_remetente.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="grade grade--dois-um">
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.nome_remetente.id_for_label }}">{{ form.nome_remetente.label }}</label>
+            {{ form.nome_remetente }}
+            {% for erro in form.nome_remetente.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="{{ form.responder_para.id_for_label }}">{{ form.responder_para.label }}</label>
+            {{ form.responder_para }}
+            {% for erro in form.responder_para.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+          </div>
+        </div>
+
+        {# --- Campos exclusivos de SMTP (ocultados no tipo Console via JS) --- #}
+        <div data-campos-smtp>
+          <fieldset style="border:none;padding:0;margin:0;">
+            <legend class="campo__rotulo" style="margin-bottom:10px">{% texto "email_marketing.configuracoes.smtp_legenda" %}</legend>
+
+            <div class="grade grade--dois-um">
+              <div class="campo">
+                <label class="campo__rotulo" for="{{ form.host.id_for_label }}">{{ form.host.label }}</label>
+                {{ form.host }}
+                {% for erro in form.host.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+              </div>
+              <div class="campo">
+                <label class="campo__rotulo" for="{{ form.porta.id_for_label }}">{{ form.porta.label }}</label>
+                {{ form.porta }}
+                {% for erro in form.porta.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+              </div>
+            </div>
+
+            <div class="campo">
+              <label class="campo__rotulo" for="{{ form.usuario.id_for_label }}">{{ form.usuario.label }}</label>
+              {{ form.usuario }}
+              {% for erro in form.usuario.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+            </div>
+
+            <div class="campo">
+              <label class="campo__rotulo" for="{{ form.senha.id_for_label }}">{{ form.senha.label }}</label>
+              {{ form.senha }}
+              {% if form.senha.help_text %}<p class="campo__ajuda">{{ form.senha.help_text }}</p>{% endif %}
+              {% for erro in form.senha.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+            </div>
+
+            <label class="campo-check">
+              {{ form.usar_tls }}
+              <span>{{ form.usar_tls.label }}</span>
+            </label>
+            <label class="campo-check">
+              {{ form.usar_ssl }}
+              <span>{{ form.usar_ssl.label }}</span>
+            </label>
+            <p class="campo__ajuda">Use TLS (porta 587) OU SSL (porta 465) — nunca os dois.</p>
+          </fieldset>
+        </div>
+
+        <label class="campo-check">
+          {{ form.ativo }}
+          <span>{{ form.ativo.label }}</span>
+        </label>
+
+        <button type="submit" class="botao botao--primario botao--bloco">Salvar configuração</button>
+      </form>
+
+      <p class="em-fraco" style="margin-top:14px">
+        A senha SMTP é <strong>cifrada</strong> (Fernet) antes de gravar e nunca é
+        exibida novamente — nem aqui, nem no admin.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

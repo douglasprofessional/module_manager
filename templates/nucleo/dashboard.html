@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Dashboard do modulos — reproduz o layout do print (dashboard financeiro),
+adaptado para PROSPECÇÃO. Consome o dicionário ``painel`` (seção 7 da SPEC).
+
+Linha 1 (3 colunas): Resumo de Prospecção (gráfico de linha) · Oportunidades
+(donut) · Próximas ações (lista).
+Linha 2: Empresas encontradas (tabela) · coluna com Meta de prospecção
+(barra de progresso) e Destaques.
+{% endcomment %}
+
+{% block titulo %}{% texto "nucleo.dashboard.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "nucleo.dashboard.subtitulo" nome=request.user.nome_completo|default:request.user.email %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="pilula-periodo" href="{% url 'nucleo:configuracoes' %}">
+    {% include "parciais/_icones.html" with nome_icone="config" only %}
+    <span>{% texto "nucleo.dashboard.gerenciar_modulos" %}</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+
+  {# ------------------------------------------------------------------ #}
+  {# Faixa de KPIs — um card por indicador contribuído pelos módulos.   #}
+  {# É o ponto de harmonia entre módulos (Kanban, SLA, Prospecção…):    #}
+  {# todos publicam no mesmo formato e aparecem aqui de modo uniforme.  #}
+  {# ------------------------------------------------------------------ #}
+  {% if cards_modulos %}
+    <div class="cartoes-resumo">
+      {% for card in cards_modulos %}
+        <a class="cartao-stat" {% if card.url and card.url != '#' %}href="{{ card.url }}"{% endif %}>
+          <span class="cartao-stat__icone" style="background:{{ card.cor|default:'#7c5cff' }}22; color:{{ card.cor|default:'#7c5cff' }}" aria-hidden="true">
+            {% include "parciais/_icones.html" with nome_icone=card.icone only %}
+          </span>
+          <span class="cartao-stat__corpo">
+            <span class="cartao-stat__valor">{{ card.valor }}</span>
+            <span class="cartao-stat__rotulo">{{ card.rotulo }}</span>
+            {% if card.detalhe %}<span class="cartao-stat__detalhe">{{ card.detalhe }}</span>{% endif %}
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Estado de boas-vindas quando nenhum módulo está habilitado. #}
+  {% if not algum_modulo_ativo %}
+    <section class="cartao">
+      <div class="vazio-bloco">
+        <span class="vazio-bloco__icone">{% include "parciais/_icones.html" with nome_icone="dashboard" only %}</span>
+        <h2 class="cartao__titulo">{% texto "nucleo.dashboard.boas_vindas_titulo" nome=site_nome %}</h2>
+        <p style="max-width:520px;margin:8px auto 18px;">
+          {% texto "nucleo.dashboard.boas_vindas_texto" %}
+        </p>
+        <a class="botao botao--primario" href="{% url 'nucleo:configuracoes' %}">{% texto "nucleo.dashboard.habilitar_modulos" %}</a>
+      </div>
+    </section>
+  {% endif %}
+
+  {# Cards detalhados da Prospecção — só quando o módulo está habilitado. #}
+  {% if 'prospeccao' in modulos_ativos %}
+  {# ------------------------------------------------------------------ #}
+  {# Linha 1                                                            #}
+  {# ------------------------------------------------------------------ #}
+  <div class="grade grade--tres">
+
+    {# Card 1 — Resumo de Prospecção (gráfico de linha) #}
+    <section class="cartao cartao--grafico" aria-labelledby="t-resumo">
+      <header class="cartao__cabecalho">
+        <div>
+          <h2 class="cartao__titulo" id="t-resumo">{% texto "nucleo.dashboard.resumo_titulo" %}</h2>
+          <p class="cartao__legenda-topo">{% texto "nucleo.dashboard.resumo_legenda" %}</p>
+        </div>
+      </header>
+
+      <div class="grafico__numeros">
+        <span class="grafico__valor">{{ painel.total_empresas }}</span>
+        <span class="variacao {% if painel.variacao_pct >= 0 %}variacao--alta{% else %}variacao--baixa{% endif %}">
+          {% if painel.variacao_pct >= 0 %}+{% endif %}{{ painel.variacao_pct }}%
+        </span>
+        <span class="grafico__complemento">{{ painel.novas_semana }} nesta semana</span>
+      </div>
+
+      <div class="grafico">
+        <svg class="grafico__svg" viewBox="0 0 320 90" preserveAspectRatio="none" role="img"
+             aria-label="Evolução semanal de empresas encontradas e qualificadas">
+          <polygon class="grafico__area"
+                   points="{% pontos_polyline painel.serie_encontradas 320 90 minimo=0 preencher=True %}"/>
+          <polyline class="grafico__linha grafico__linha--clara"
+                    points="{% pontos_polyline painel.serie_encontradas 320 90 minimo=0 %}"
+                    fill="none" vector-effect="non-scaling-stroke"/>
+          <polyline class="grafico__linha grafico__linha--roxa"
+                    points="{% pontos_polyline painel.serie_qualificadas 320 90 minimo=0 %}"
+                    fill="none" vector-effect="non-scaling-stroke"/>
+        </svg>
+      </div>
+
+      <ul class="legenda-linha">
+        <li><span class="ponto ponto--clara"></span>Encontradas</li>
+        <li><span class="ponto ponto--roxa"></span>Qualificadas</li>
+      </ul>
+    </section>
+
+    {# Card 2 — Oportunidades (donut + legenda) #}
+    <section class="cartao cartao--donut" aria-labelledby="t-oport">
+      <header class="cartao__cabecalho">
+        <h2 class="cartao__titulo" id="t-oport">{% texto "nucleo.dashboard.oportunidades_titulo" %}</h2>
+      </header>
+
+      <div class="donut-bloco">
+        <div class="donut-wrap">
+          <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Distribuição de oportunidades por tipo de problema">
+            <circle class="donut__trilha" cx="21" cy="21" r="15.915" fill="none" stroke-width="4"/>
+            {% for o in painel.oportunidades %}
+              <circle class="donut__fatia" cx="21" cy="21" r="15.915" fill="none"
+                      stroke="{{ o.cor }}" stroke-width="4" pathLength="100"
+                      stroke-dasharray="{{ o.pct }} 100" data-pct="{{ o.pct }}"
+                      transform="rotate(-90 21 21)"/>
+            {% endfor %}
+          </svg>
+          <div class="donut__centro">
+            <span class="donut__numero">{{ painel.oportunidades_total }}</span>
+            <span class="donut__rotulo">oportunidades</span>
+          </div>
+        </div>
+
+        <ul class="legenda-donut">
+          {% for o in painel.oportunidades %}
+            <li class="legenda-donut__item">
+              <span class="ponto" style="background:{{ o.cor }}"></span>
+              <span class="legenda-donut__rotulo">{{ o.rotulo }}</span>
+              <span class="legenda-donut__pct">{{ o.pct }}%</span>
+            </li>
+          {% empty %}
+            <li class="legenda-donut__vazio">Sem oportunidades ainda.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    {# Card 3 — Próximas ações #}
+    <section class="cartao cartao--acoes" aria-labelledby="t-acoes">
+      <header class="cartao__cabecalho">
+        <h2 class="cartao__titulo" id="t-acoes">{% texto "nucleo.dashboard.acoes_titulo" %}</h2>
+      </header>
+
+      <ul class="acoes">
+        {% for acao in painel.proximas_acoes %}
+          <li class="acoes__item">
+            <span class="acoes__icone" aria-hidden="true">{% include "parciais/_icones.html" with nome_icone="alerta" only %}</span>
+            <span class="acoes__texto">
+              <span class="acoes__titulo">{{ acao.titulo }}</span>
+              <span class="acoes__quando">{{ acao.quando }}</span>
+            </span>
+            <span class="badge badge--roxo">{{ acao.tag }}</span>
+          </li>
+        {% empty %}
+          <li class="acoes__vazio">Nenhuma ação pendente por enquanto.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+  </div>
+
+  {# ------------------------------------------------------------------ #}
+  {# Linha 2                                                            #}
+  {# ------------------------------------------------------------------ #}
+  <div class="grade grade--dois-um">
+
+    {# Card 4 — Empresas encontradas (tabela principal) #}
+    <section class="cartao cartao--tabela" aria-labelledby="t-empresas">
+      <header class="cartao__cabecalho">
+        <h2 class="cartao__titulo" id="t-empresas">{% texto "nucleo.dashboard.empresas_titulo" %}</h2>
+        <a class="botao botao--suave" href="{% url 'prospeccao:lista' %}">{% texto "prospeccao.lista.ver_todas" %}</a>
+      </header>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th scope="col">Empresa</th>
+              <th scope="col">Tempo de mercado</th>
+              <th scope="col">Responsável</th>
+              <th scope="col">E-mail</th>
+              <th scope="col">Instagram</th>
+              <th scope="col">Domínio</th>
+              <th scope="col">WhatsApp</th>
+              <th scope="col">Problemas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in painel.empresas %}
+              <tr>
+                <td>
+                  <span class="celula-empresa">
+                    <span class="avatar" style="background:{{ e.cor }}" aria-hidden="true">{{ e.inicial }}</span>
+                    {% if e.pk %}
+                      <a class="celula-empresa__nome" href="{% url 'prospeccao:detalhe' e.pk %}">{{ e.nome }}</a>
+                    {% else %}
+                      <span class="celula-empresa__nome">{{ e.nome }}</span>
+                    {% endif %}
+                  </span>
+                </td>
+                <td>{{ e.tempo_mercado }}</td>
+                <td>{{ e.responsavel }}</td>
+                <td class="celula-truncar">{{ e.email }}</td>
+                <td>{{ e.instagram }}</td>
+                <td>{{ e.dominio }}</td>
+                <td>{{ e.whatsapp }}</td>
+                <td>
+                  <span class="badges">
+                    {% for p in e.problemas_badges %}
+                      <span class="badge badge--{{ p.cor }}">{{ p.rotulo }}</span>
+                    {% empty %}
+                      <span class="badge badge--verde">{% texto "prospeccao.problemas.nenhum" %}</span>
+                    {% endfor %}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" class="tabela__vazio">{% texto "prospeccao.lista.vazio_dashboard" %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {# Coluna direita: Meta de prospecção + Destaques #}
+    <div class="coluna-lateral">
+
+      {# Card 5 — Meta de prospecção #}
+      <section class="cartao cartao--meta" aria-labelledby="t-meta">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="t-meta">{% texto "nucleo.dashboard.meta_titulo" %}</h2>
+        </header>
+
+        <p class="meta__valores">
+          <span class="meta__atual">{{ painel.meta_atual }}</span>
+          <span class="meta__total">de {{ painel.meta_total }} qualificadas</span>
+        </p>
+
+        <div class="barra" role="progressbar" aria-valuenow="{{ painel.meta_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da meta de prospecção">
+          <span class="barra__preenchida" style="width: {{ painel.meta_pct }}%"></span>
+        </div>
+        <p class="meta__pct">{{ painel.meta_pct }}% da meta atingida</p>
+      </section>
+
+      {# Card 6 — Destaques #}
+      <section class="cartao cartao--destaque" aria-labelledby="t-destaque">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo" id="t-destaque">{% texto "nucleo.dashboard.destaques_titulo" %}</h2>
+        </header>
+
+        {% if painel.destaque_titulo %}
+          <p class="destaque__titulo">{{ painel.destaque_titulo }}</p>
+          <p class="destaque__texto">{{ painel.destaque_texto }}</p>
+        {% else %}
+          <p class="destaque__texto">Assim que houver dados suficientes, seus melhores leads aparecerão aqui.</p>
+        {% endif %}
+        <a class="botao botao--primario" href="{% url 'prospeccao:lista' %}">Ver empresas</a>
+      </section>
+
+    </div>
+  </div>
+  {% endif %}{# fim: cards da Prospecção #}
+
+</div>
+{% endblock %}

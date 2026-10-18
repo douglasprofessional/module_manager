@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Lista paginada de campanhas (adendo 3 — MÓDULO 5).
+
+Contexto (de ``CampanhaListView``): ``campanhas`` (page object_list),
+``page_obj`` / ``is_paginated``. Cada linha mostra nome, status (badge),
+destinatários e enviados/falhas, com ação "Ver".
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'email_marketing/email_marketing.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "email_marketing.campanhas.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "email_marketing.campanhas.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--primario" href="{% url 'email_marketing:campanha_nova' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Nova campanha</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao cartao--tabela">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "email_marketing.campanhas.campanhas_titulo" %}</h2></header>
+
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th scope="col">Campanha</th>
+            <th scope="col">Status</th>
+            <th scope="col">Destinatários</th>
+            <th scope="col">Enviados / Falhas</th>
+            <th scope="col">Criada em</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for campanha in campanhas %}
+            <tr>
+              <td>
+                <a class="celula-empresa__nome" href="{% url 'email_marketing:campanha_detalhe' campanha.pk %}">{{ campanha.nome }}</a>
+                <div class="em-fraco celula-truncar">{{ campanha.assunto }}</div>
+              </td>
+              <td><span class="tag-status {{ campanha.classe_status }}">{{ campanha.get_status_display }}</span></td>
+              <td>{{ campanha.total_destinatarios }}</td>
+              <td>{{ campanha.total_enviados }} / <span class="em-contador__valor--falhas">{{ campanha.total_falhas }}</span></td>
+              <td>{{ campanha.criado_em|date:"d/m/Y H:i" }}</td>
+              <td>
+                <a class="botao botao--suave botao--pequeno" href="{% url 'email_marketing:campanha_detalhe' campanha.pk %}">Ver</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="tabela__vazio">Nenhuma campanha criada ainda.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="paginacao" aria-label="Paginação">
+        {% if page_obj.has_previous %}
+          <a class="paginacao__link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Anterior</span>
+        {% endif %}
+        <span class="paginacao__atual">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="paginacao__link" href="?page={{ page_obj.next_page_number }}">Próxima</a>
+        {% else %}
+          <span class="paginacao__link paginacao__link--inativo">Próxima</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

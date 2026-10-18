@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static blog_extras nucleo_extras %}
+{% comment %}
+Editor de posts com painel de validação SEO/GEO/A11y (gestão interna).
+
+Contexto (da view ``post_edit``): ``form`` (PostForm), ``post`` (ou None),
+``report`` (último relatório de validação), ``dims`` ([(chave, rótulo), ...]),
+``can_publish`` (bool) e ``is_new`` (bool).
+
+Toda a lógica de cliente vive em ``static/blog/editor.js`` (WYSIWYG) e
+``static/blog/validator.js`` (validação ao vivo). NÃO há <script> inline (CSP).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'blog/blog.css' %}">{% endblock %}
+
+{% block titulo %}{% if is_new %}{% texto "blog.post_form.titulo_novo" %}{% else %}{% texto "blog.post_form.titulo_editar" %}{% endif %}{% endblock %}
+{% block subtitulo %}{% texto "blog.post_form.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'blog:lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<form id="post-form" class="formulario" method="post" enctype="multipart/form-data"
+      data-validate-url="{% url 'blog:validate_ajax' %}"
+      data-has-image="{% if post.featured_image %}1{% else %}0{% endif %}">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="mensagem mensagem--error" role="alert">
+      {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="editor">
+    <!-- ================= COLUNA PRINCIPAL ================= -->
+    <div class="editor__main">
+      <section class="cartao">
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% for erro in form.title.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
+          {{ form.slug }}
+          <p class="ajuda-campo">Deixe em branco para gerar automaticamente a partir do título.</p>
+          {% for erro in form.slug.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+          {{ form.content }}
+          <p class="ajuda-campo">Use a barra de ferramentas para títulos, listas, links e imagens. O botão <strong>HTML</strong> abre o código-fonte. A sanitização e as melhores práticas são aplicadas ao salvar.</p>
+          {% for erro in form.content.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.excerpt.id_for_label }}">{{ form.excerpt.label }}</label>
+          {{ form.excerpt }}
+          <p class="ajuda-campo">Resumo/TL;DR: responda direto à intenção do leitor (ótimo para SEO/GEO).</p>
+          {% for erro in form.excerpt.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= BARRA LATERAL ================= -->
+    <aside class="editor__side">
+
+      <!-- Caixa de publicação -->
+      <section class="cartao">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "blog.post_form.publicacao_titulo" %}</h2></header>
+        {% if post %}
+          <p class="editor__status">Status atual:
+            <span class="tag-status tag-status--{{ post.status }}">{{ post.get_status_display }}</span>
+          </p>
+        {% endif %}
+
+        <div class="editor__acoes">
+          <button type="submit" name="action" value="save" class="botao botao--suave botao--bloco">
+            {% include "parciais/_icones.html" with nome_icone="salvar" only %}<span>Salvar (validar)</span>
+          </button>
+          <button type="submit" name="action" value="draft" class="botao botao--suave botao--bloco">
+            {% include "parciais/_icones.html" with nome_icone="editar" only %}<span>Tornar rascunho</span>
+          </button>
+
+          {% if can_publish %}
+            <button type="submit" name="action" value="publish" class="botao botao--primario botao--bloco">
+              {% include "parciais/_icones.html" with nome_icone="raio" only %}<span>Publicar</span>
+            </button>
+
+            <div class="campo-grupo">
+              <label class="rotulo" for="{{ form.publish_at.id_for_label }}">{{ form.publish_at.label }}</label>
+              {{ form.publish_at }}
+              {% for erro in form.publish_at.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+              <button type="submit" name="action" value="schedule" class="botao botao--suave botao--bloco">
+                {% include "parciais/_icones.html" with nome_icone="calendario" only %}<span>Agendar</span>
+              </button>
+            </div>
+          {% else %}
+            <button type="submit" name="action" value="pending" class="botao botao--primario botao--bloco">
+              {% include "parciais/_icones.html" with nome_icone="enviar" only %}<span>Enviar para revisão</span>
+            </button>
+          {% endif %}
+
+          {% if post.is_published %}
+            <button type="submit" name="action" value="unpublish" class="botao botao--suave botao--bloco">
+              {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}<span>Despublicar</span>
+            </button>
+          {% endif %}
+        </div>
+        <p class="ajuda-campo">A validação roda a cada clique. Publicar/Agendar exigem que não haja bloqueios.</p>
+      </section>
+
+      <!-- Painel de validação -->
+      <section class="cartao">
+        <header class="cartao__cabecalho">
+          <h2 class="cartao__titulo">{% texto "blog.post_form.analise_titulo" %}</h2>
+          <button type="button" id="btn-validate" class="botao botao--suave botao--pequeno">Validar agora</button>
+        </header>
+        <div id="validation-panel" aria-live="polite">
+          {% include "blog/_validation.html" %}
+        </div>
+      </section>
+
+      <!-- SEO -->
+      <section class="cartao">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "blog.post_form.seo_titulo" %}</h2></header>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.focus_keyword.id_for_label }}">{{ form.focus_keyword.label }}</label>
+          {{ form.focus_keyword }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.meta_title.id_for_label }}">{{ form.meta_title.label }}</label>
+          {{ form.meta_title }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.meta_description.id_for_label }}">{{ form.meta_description.label }}</label>
+          {{ form.meta_description }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.canonical_url.id_for_label }}">{{ form.canonical_url.label }}</label>
+          {{ form.canonical_url }}
+        </div>
+        <label class="campo-check">
+          {{ form.noindex }}
+          <span>Não indexar (noindex)</span>
+        </label>
+      </section>
+
+      <!-- Imagem de capa -->
+      <section class="cartao">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "blog.post_form.imagem_titulo" %}</h2></header>
+        {% if post.featured_image %}<img src="{{ post.featured_image.url }}" alt="" class="editor__thumb">{% endif %}
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.featured_image.id_for_label }}">{{ form.featured_image.label }}</label>
+          {{ form.featured_image }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.featured_image_alt.id_for_label }}">{{ form.featured_image_alt.label }}</label>
+          {{ form.featured_image_alt }}
+          <p class="ajuda-campo">Obrigatório para publicar (acessibilidade).</p>
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.og_image.id_for_label }}">{{ form.og_image.label }}</label>
+          {{ form.og_image }}
+        </div>
+      </section>
+
+      <!-- Taxonomia -->
+      <section class="cartao">
+        <header class="cartao__cabecalho"><h2 class="cartao__titulo">{% texto "blog.post_form.taxonomias_titulo" %}</h2></header>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.categories.id_for_label }}">{{ form.categories.label }}</label>
+          {{ form.categories }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.tags.id_for_label }}">{{ form.tags.label }}</label>
+          {{ form.tags }}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.new_tags.id_for_label }}">{{ form.new_tags.label }}</label>
+          {{ form.new_tags }}
+        </div>
+      </section>
+
+    </aside>
+  </div>
+</form>
+{% endblock %}
+
+{% block js_extra %}
+<script src="{% static 'blog/editor.js' %}" defer></script>
+<script src="{% static 'blog/validator.js' %}" defer></script>
+{% endblock %}

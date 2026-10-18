@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Grid de servidores monitorados (adendo 2 — MÓDULO 3), estilo Proxmox.
+
+Contexto (de ``ServidorListView``): ``cartoes`` (lista de dicts
+``{servidor, leitura, cpu, mem, disco}`` — cada medidor traz ``pct``, ``cor`` e
+``largura``) e ``total``. Cada cartão mostra status, medidores de CPU/RAM/disco
+com cor por uso, uptime e a última coleta. Os botões "Coletar" funcionam via
+POST (fallback sem JS); o monitoramento.js os intercepta para coleta assíncrona.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'monitoramento/monitoramento.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "monitoramento.lista.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "monitoramento.lista.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <form method="post" action="{% url 'monitoramento:coletar_todos' %}" class="linha-acao">
+    {% csrf_token %}
+    <button type="submit" class="botao botao--suave">
+      {% include "parciais/_icones.html" with nome_icone="atualizar" only %}
+      <span>Coletar todos</span>
+    </button>
+  </form>
+  <a class="botao botao--primario" href="{% url 'monitoramento:novo' %}">
+    {% include "parciais/_icones.html" with nome_icone="mais" only %}
+    <span>Novo servidor</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  {% if cartoes %}
+    <div class="mon-grade" data-mon-grade>
+      {% for item in cartoes %}
+        <section class="cartao mon-card" aria-label="Servidor {{ item.servidor.nome }}">
+          <header class="mon-card__topo">
+            <span class="avatar mon-card__avatar" aria-hidden="true">{{ item.servidor.iniciais }}</span>
+            <div class="mon-card__identidade">
+              <a class="mon-card__nome" href="{% url 'monitoramento:detalhe' item.servidor.pk %}">{{ item.servidor.nome }}</a>
+              <span class="mon-card__host">{{ item.servidor.usuario }}@{{ item.servidor.host }}:{{ item.servidor.porta_ssh }}</span>
+            </div>
+            <span class="tag-status {{ item.servidor.classe_status }}">{{ item.servidor.get_ultimo_status_display }}</span>
+          </header>
+
+          <div class="mon-medidores">
+            {# CPU #}
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">
+                  {% include "parciais/_icones.html" with nome_icone="cpu" only %}
+                  <span>CPU</span>
+                </span>
+                <span class="mon-medidor__valor">{% if item.cpu.pct is not None %}{{ item.cpu.pct }}%{% else %}—{% endif %}</span>
+              </div>
+              <div class="barra" role="progressbar" aria-valuenow="{{ item.cpu.largura }}" aria-valuemin="0" aria-valuemax="100" aria-label="Uso de CPU">
+                <span class="barra__preenchida" style="width: {{ item.cpu.largura }}%; background: {{ item.cpu.cor }};"></span>
+              </div>
+            </div>
+
+            {# Memória #}
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">
+                  {% include "parciais/_icones.html" with nome_icone="dashboard" only %}
+                  <span>Memória</span>
+                </span>
+                <span class="mon-medidor__valor">{% if item.mem.pct is not None %}{{ item.mem.pct }}%{% else %}—{% endif %}</span>
+              </div>
+              <div class="barra" role="progressbar" aria-valuenow="{{ item.mem.largura }}" aria-valuemin="0" aria-valuemax="100" aria-label="Uso de memória">
+                <span class="barra__preenchida" style="width: {{ item.mem.largura }}%; background: {{ item.mem.cor }};"></span>
+              </div>
+            </div>
+
+            {# Disco #}
+            <div class="mon-medidor">
+              <div class="mon-medidor__topo">
+                <span class="mon-medidor__rotulo">
+                  {% include "parciais/_icones.html" with nome_icone="disco" only %}
+                  <span>Disco</span>
+                </span>
+                <span class="mon-medidor__valor">{% if item.disco.pct is not None %}{{ item.disco.pct }}%{% else %}—{% endif %}</span>
+              </div>
+              <div class="barra" role="progressbar" aria-valuenow="{{ item.disco.largura }}" aria-valuemin="0" aria-valuemax="100" aria-label="Uso de disco">
+                <span class="barra__preenchida" style="width: {{ item.disco.largura }}%; background: {{ item.disco.cor }};"></span>
+              </div>
+            </div>
+          </div>
+
+          <dl class="mon-card__meta">
+            <div class="mon-card__meta-item">
+              <dt>Uptime</dt>
+              <dd>{% if item.leitura and item.leitura.online %}{{ item.leitura.uptime_texto }}{% else %}—{% endif %}</dd>
+            </div>
+            <div class="mon-card__meta-item">
+              <dt>Última coleta</dt>
+              <dd>{% if item.servidor.ultima_coleta_em %}{{ item.servidor.ultima_coleta_em|date:"d/m H:i" }}{% else %}nunca{% endif %}</dd>
+            </div>
+          </dl>
+
+          <div class="mon-card__acoes">
+            <a class="botao botao--suave botao--pequeno" href="{% url 'monitoramento:detalhe' item.servidor.pk %}">Detalhes</a>
+            <form method="post" action="{% url 'monitoramento:coletar' item.servidor.pk %}" class="linha-acao" data-mon-coletar>
+              {% csrf_token %}
+              <button type="submit" class="botao botao--primario botao--pequeno">
+                {% include "parciais/_icones.html" with nome_icone="atualizar" only %}
+                <span>Coletar</span>
+              </button>
+            </form>
+            <a class="botao botao--suave botao--pequeno" href="{% url 'monitoramento:editar' item.servidor.pk %}" aria-label="Editar {{ item.servidor.nome }}">
+              {% include "parciais/_icones.html" with nome_icone="editar" only %}
+            </a>
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="cartao mon-vazio">
+      <span class="mon-vazio__icone" aria-hidden="true">
+        {% include "parciais/_icones.html" with nome_icone="servidor" only %}
+      </span>
+      <h2 class="mon-vazio__titulo">{% texto "monitoramento.lista.vazio_titulo" %}</h2>
+      <p class="mon-vazio__texto">Cadastre seu primeiro servidor/VPS para monitorar CPU, memória, disco e uptime por SSH.</p>
+      <a class="botao botao--primario" href="{% url 'monitoramento:novo' %}">Cadastrar servidor</a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'monitoramento/monitoramento.js' %}" defer></script>{% endblock %}

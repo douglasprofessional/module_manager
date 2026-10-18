@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Edicao da cobranca mensal (situacao e vencimento).
+
+Contexto (de ``charge_edit``): ``form`` (ChargeStatusForm), ``cobranca`` e ``titulo``.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'cupons/cupons.css' %}">{% endblock %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block subtitulo %}{{ cobranca.customer.full_name }} · {{ cobranca.reference_month|date:"m/Y" }}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'cupons:charge_list' %}?mes={{ cobranca.reference_month|date:'Y-m' }}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar as cobrancas</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+    <section class="cartao" aria-labelledby="c-form">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-form">{% texto "cupons.cobranca_form.situacao_titulo" %}</h2></header>
+
+      {% if form.non_field_errors %}
+        <div class="mensagem mensagem--error" role="alert">
+          {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form class="formulario" method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-grid">
+          {% include "cupons/_campo.html" with campo=form.status %}
+          {% include "cupons/_campo.html" with campo=form.due_date %}
+        </div>
+        <div class="form-acoes">
+          <button type="submit" class="botao botao--primario">Salvar cobranca</button>
+          <a class="botao botao--suave" href="{% url 'cupons:charge_list' %}">Cancelar</a>
+        </div>
+      </form>
+    </section>
+
+    <section class="cartao cartao--destaque" aria-labelledby="c-resumo">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-resumo">{% texto "cupons.cobranca_form.resumo_titulo" %}</h2></header>
+      <p class="destaque__texto">Mensalidade: <strong>{{ cobranca.base_amount|moeda }}</strong></p>
+      <p class="destaque__texto">Descontos: <strong>{{ cobranca.discount_amount|moeda }}</strong></p>
+      <p class="destaque__texto">Valor final: <strong>{{ cobranca.final_amount|moeda }}</strong></p>
+      {% if cobranca.coupons_summary %}<p class="destaque__texto">Cupons: {{ cobranca.coupons_summary }}</p>{% endif %}
+      {% if cobranca.bonus_summary %}<p class="destaque__texto">Bonus: {{ cobranca.bonus_summary }}</p>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

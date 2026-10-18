@@ -1,0 +1,159 @@
+/* =========================================================================
+   modulos — Módulo Monitoramento (painel estilo Proxmox).
+   Usa as variáveis globais do design system (--roxo, --superficie, --borda,
+   --raio, etc.). NÃO redefine tokens. As cores das barras de uso (verde/amarelo/
+   vermelho) chegam por style="" inline (permitido: style-src 'unsafe-inline').
+   ========================================================================= */
+
+/* Grade de cartões de servidor (responsiva). */
+.mon-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* Cartão de servidor: empilha cabeçalho, medidores, meta e ações. */
+.mon-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.mon-card__topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mon-card__avatar {
+  background: var(--grad-roxo);
+  box-shadow: 0 6px 16px rgba(124, 92, 255, .25);
+}
+.mon-card__identidade {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.mon-card__nome {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a.mon-card__nome:hover { color: var(--roxo-2); }
+.mon-card__host {
+  color: var(--texto-fraco);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Medidores (CPU/RAM/disco). */
+.mon-medidores { display: flex; flex-direction: column; gap: 12px; }
+.mon-medidores--detalhe { gap: 16px; }
+.mon-medidor { display: flex; flex-direction: column; gap: 6px; }
+.mon-medidor__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.mon-medidor__rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+.mon-medidor__rotulo svg.icone { width: 15px; height: 15px; color: var(--texto-fraco); }
+.mon-medidor__valor { color: var(--texto); font-weight: 700; }
+
+/* Meta (uptime / última coleta). */
+.mon-card__meta {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(38, 38, 44, .6);
+}
+.mon-card__meta-item { display: flex; flex-direction: column; gap: 2px; flex: 1; padding-top: 10px; }
+.mon-card__meta-item dt { color: var(--texto-fraco); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.mon-card__meta-item dd { color: var(--texto); font-size: 13px; font-weight: 600; }
+
+/* Ações do cartão. */
+.mon-card__acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.mon-card__acoes .botao { flex: 1; }
+.mon-card__acoes .linha-acao { flex: 1; }
+.mon-card__acoes .linha-acao .botao { width: 100%; }
+.mon-card__acoes .botao--suave[aria-label] { flex: 0 0 auto; }
+
+/* Estado vazio. */
+.mon-vazio { text-align: center; padding: 48px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mon-vazio__icone {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  background: rgba(124, 92, 255, .15);
+  color: var(--roxo-2);
+  display: grid; place-items: center;
+  margin-bottom: 6px;
+}
+.mon-vazio__icone svg.icone { width: 30px; height: 30px; }
+.mon-vazio__titulo { font-size: 17px; font-weight: 700; }
+.mon-vazio__texto { color: var(--texto-suave); font-size: 13.5px; max-width: 420px; margin-bottom: 8px; }
+
+/* Chips de métricas (detalhe). */
+.mon-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+.mon-sistema { color: var(--texto-fraco); font-size: 12.5px; margin-top: 12px; }
+.mon-observacoes { margin-top: 14px; }
+
+/* Fingerprint da host key (monospace, quebra em qualquer ponto). */
+.mon-fingerprint {
+  display: block;
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Mini-gráfico do histórico. */
+.mon-grafico .grafico__linha { stroke-width: 2px; }
+
+/* Botão de exclusão (perigo). */
+.mon-botao-perigo { color: var(--vermelho); border-color: rgba(248, 113, 113, .35); }
+.mon-botao-perigo:hover { background: rgba(248, 113, 113, .10); }
+
+/* Formulário. */
+.mon-form-linha { gap: 16px; }
+.mon-fieldset {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 4px 0;
+}
+.mon-fieldset__legenda {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+@media (max-width: 720px) {
+  .mon-grade { grid-template-columns: 1fr; }
+}

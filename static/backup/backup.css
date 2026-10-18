@@ -1,0 +1,96 @@
+/* Estilos do módulo Backup (adendo 2 — MÓDULO 4).
+ *
+ * Usa as variáveis globais do design system (--roxo, --superficie, --borda,
+ * --raio, etc.). Não redefine tokens; apenas acrescenta o que o layout base não
+ * tem: a nota explicativa, as ações da tabela, os rádios de tipo e o toggle
+ * CSS puro (sem JS) que mostra/oculta campos conforme o tipo escolhido.
+ */
+
+/* Texto auxiliar esmaecido (usado em células "sem arquivo"/"sem valor"). */
+.texto-fraco { color: var(--texto-fraco); font-size: 13px; }
+
+/* --------------------------------------------------------- Nota explicativa */
+.backup-nota {
+  border-left: 3px solid var(--roxo);
+}
+.backup-nota__texto {
+  color: var(--texto-suave);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.backup-nota__texto + .backup-nota__texto { margin-top: 8px; }
+.backup-nota__texto--fraco { color: var(--texto-fraco); font-size: 12.5px; }
+.backup-nota code {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 12.5px;
+}
+
+/* --------------------------------------------------------- Tabela / ações */
+.celula-tamanho { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.backup-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.backup-acoes .botao svg.icone { width: 15px; height: 15px; }
+
+/* Variante de perigo para "Excluir" (discreta; vira sólida no hover). */
+.botao--perigo {
+  color: var(--vermelho);
+  border-color: rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .08);
+}
+.botao--perigo:hover {
+  color: #fff;
+  background: var(--vermelho);
+  border-color: var(--vermelho);
+}
+
+/* --------------------------------------------------------- Formulário */
+.campo-tipo {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.campo-tipo .campo__rotulo { margin-bottom: 4px; }
+
+/* Rádios de tipo como opções lado a lado. */
+.opcoes-tipo > div {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.opcoes-tipo label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--fundo);
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.opcoes-tipo label:hover { border-color: var(--roxo); }
+.opcoes-tipo input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--roxo);
+  cursor: pointer;
+}
+
+/* Toggle CSS puro (sem JS, respeita a CSP): esconde o campo irrelevante conforme
+ * o tipo escolhido. id_tipo_0 = "modulo" (1ª opção), id_tipo_1 = "completo".
+ * Sem suporte a :has(), ambos os campos aparecem e o backend valida. */
+@supports selector(:has(*)) {
+  .form-backup:has(#id_tipo_1:checked) .campo-escopo { display: none; }
+  .form-backup:has(#id_tipo_0:checked) .campo-media { display: none; }
+}

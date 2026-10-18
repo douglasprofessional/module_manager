@@ -1,0 +1,55 @@
+/* ==========================================================================
+   Módulo de Prospecção — Painel (métricas da Google Places API, chave e IA)
+   Usa apenas as variáveis de cor do tema (dashboard.css): claro e escuro.
+   ========================================================================== */
+
+/* Grade de indicadores do motor de análise */
+.metricas-google {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.metrica-google {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  background: var(--superficie-2);
+  color: var(--texto);
+  text-decoration: none;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.metrica-google:hover { border-color: var(--roxo); transform: translateY(-1px); }
+.metrica-google__valor { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.metrica-google__rotulo { color: var(--texto-suave); font-size: 13px; min-height: 34px; }
+.metrica-google__pct { color: var(--texto-fraco); font-size: 12px; }
+.metrica-google__barra {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--borda);
+  overflow: hidden;
+}
+.metrica-google__barra span { display: block; height: 100%; border-radius: inherit; background: var(--roxo); }
+.metrica-google--vermelho .metrica-google__barra span { background: var(--vermelho); }
+.metrica-google--amarelo .metrica-google__barra span { background: var(--amarelo); }
+.metrica-google--azul .metrica-google__barra span { background: var(--azul); }
+.metrica-google--roxo .metrica-google__barra span { background: var(--roxo); }
+
+/* Linha de botões dos formulários do Painel */
+.acoes-formulario { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.acoes-formulario--separada { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--borda); }
+
+/* Diagnósticos em texto (motor de regras e IA) */
+.diagnostico-texto {
+  color: var(--texto-suave);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.diagnostico-meta { color: var(--texto-fraco); font-size: 12px; margin-top: 10px; }
+.horario-semana { margin: 8px 0 0; padding-left: 18px; color: var(--texto-suave); font-size: 13px; }
+.horario-semana li { margin: 2px 0; }

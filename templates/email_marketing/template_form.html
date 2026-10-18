@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Edição de um modelo de e-mail. Contexto da view ``template_editar``:
+``form`` (TemplateEmailForm) e ``modelo`` (TemplateEmail).
+{% endcomment %}
+
+{% block titulo %}{% texto "email_marketing.template_form.titulo" %}{% endblock %}
+{% block subtitulo %}{{ modelo.nome }} — {{ modelo.get_categoria_display }}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'email_marketing:templates' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+  <a class="botao botao--suave" href="{% url 'email_marketing:campanha_nova' %}?template={{ modelo.pk }}">Usar em campanha</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao">
+    <form method="post" action="{% url 'email_marketing:template_editar' modelo.pk %}" novalidate>
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.nome.id_for_label }}">Nome</label>
+          {{ form.nome }}
+          {% for erro in form.nome.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ form.categoria.id_for_label }}">Categoria</label>
+          {{ form.categoria }}
+        </div>
+      </div>
+      <div class="campo-grupo" style="margin-top:16px;">
+        <label class="rotulo" for="{{ form.descricao.id_for_label }}">Descrição</label>
+        {{ form.descricao }}
+      </div>
+      <div class="campo-grupo" style="margin-top:16px;">
+        <label class="rotulo" for="{{ form.corpo_html.id_for_label }}">Corpo (HTML)</label>
+        {{ form.corpo_html }}
+        {% for erro in form.corpo_html.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        <p class="ajuda-campo">Use os marcadores {% verbatim %}{{ nome }}, {{ empresa }}, {{ email }} e {{ link_descadastro }}{% endverbatim %} (obrigatório no rodapé).</p>
+      </div>
+      <div class="campo-grupo" style="margin-top:16px;">
+        <label class="rotulo" for="{{ form.corpo_texto.id_for_label }}">Corpo (texto puro)</label>
+        {{ form.corpo_texto }}
+      </div>
+      <div class="campo-grupo" style="margin-top:16px;">
+        <label class="interruptor">
+          {{ form.ativo }}
+          <span class="interruptor__texto">Modelo ativo (aparece no seletor de campanhas)</span>
+        </label>
+      </div>
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--primario">Salvar modelo</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+# Arquivos que NÃO devem entrar na imagem Docker.
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+# ATENÇÃO: não excluir 'docker/' — o Dockerfile faz COPY de docker/entrypoint.sh.
+
+# Segredos e banco local
+.env
+*.env
+!.env.example
+db.sqlite3
+*.sqlite3
+
+# Artefatos Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Estáticos coletados (gerados no contêiner)
+staticfiles/
+media/
+backups/
+
+# Ferramentas / editores
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Documentação de autoria (não é necessária em runtime)
+docs/SPEC.md
+docs/SPEC_MODULOS.md
+
+# Artefatos de autoria que não devem ir para a imagem
+plataforma.zip
+*.zip
+prompt.txt

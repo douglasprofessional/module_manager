@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Ficha do cliente: valor do mes (mensalidade + cupons), cupons vigentes,
+aplicacao de cupom, historico de aplicacoes e ultimas cobrancas.
+
+Contexto (de ``customer_detail``): ``cliente``, ``calculo`` (PricingResult),
+``referencia``, ``referencia_label``, ``meses``, ``aplicacoes``, ``historico``,
+``cobrancas`` e ``form_aplicacao`` (CouponAssignmentForm).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'cupons/cupons.css' %}">{% endblock %}
+
+{% block titulo %}{{ cliente.full_name }}{% endblock %}
+{% block subtitulo %}{% texto "cupons.cliente_detalhe.subtitulo" email=cliente.email telefone=cliente.phone aniversario=cliente.birthday_display %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url 'cupons:cliente_lista' %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar aos clientes</span>
+  </a>
+  <a class="botao botao--primario" href="{% url 'cupons:customer_update' cliente.pk %}">Editar</a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <div class="grade grade--dois-um">
+
+    <section class="cartao" aria-labelledby="c-valor">
+      <header class="cartao__cabecalho cartao__cabecalho--filtros">
+        <h2 class="cartao__titulo" id="c-valor">{% texto "cupons.cliente_detalhe.valor_titulo" referencia=referencia_label %}</h2>
+        <form class="filtros" method="get" aria-label="Escolher mes">
+          <div class="filtros__campo">
+            <label class="filtros__rotulo" for="f-mes">Mes</label>
+            <select class="campo" id="f-mes" name="mes">
+              {% for m in meses %}
+                <option value="{{ m.value }}" {% if m.date == referencia %}selected{% endif %}>{{ m.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filtros__acoes"><button type="submit" class="botao botao--suave">Ver</button></div>
+        </form>
+      </header>
+      <p class="destaque__texto">Mensalidade: <strong>{{ calculo.base_amount|moeda }}</strong></p>
+      <p class="destaque__texto">Descontos: <strong>{{ calculo.total_discount|moeda }}</strong>{% if calculo.has_discount %} ({{ calculo.discount_percent_of_base }}%){% endif %}</p>
+      <p class="destaque__texto">Valor a pagar: <strong>{{ calculo.final_amount|moeda }}</strong></p>
+      {% for item in calculo.applied %}
+        <div class="lista-dados__extra">{{ item.name }}: -{{ item.discount|moeda }}</div>
+      {% endfor %}
+      {% for bonus in calculo.bonuses %}
+        <div class="lista-dados__extra">Bonus: {{ bonus.name }}</div>
+      {% endfor %}
+      <p class="destaque__texto"><span class="tag-status {{ cliente.status_badge_class }}">{{ cliente.status_label }}</span></p>
+    </section>
+
+    <section class="cartao" aria-labelledby="c-aplicar">
+      <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-aplicar">{% texto "cupons.cliente_detalhe.aplicar_titulo" %}</h2></header>
+      <form class="formulario" method="post" action="{% url 'cupons:assignment_create' cliente.pk %}" novalidate>
+        {% csrf_token %}
+        <div class="form-grid form-grid--um">
+          {% include "cupons/_campo.html" with campo=form_aplicacao.coupon %}
+          {% include "cupons/_campo.html" with campo=form_aplicacao.mode %}
+          {% include "cupons/_campo.html" with campo=form_aplicacao.start_month %}
+          {% include "cupons/_campo.html" with campo=form_aplicacao.end_month %}
+        </div>
+        <div class="form-acoes"><button type="submit" class="botao botao--primario">Aplicar</button></div>
+      </form>
+    </section>
+  </div>
+
+  <section class="cartao cartao--tabela" aria-labelledby="c-vigentes">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-vigentes">{% texto "cupons.cliente_detalhe.vigentes_titulo" referencia=referencia_label %}</h2></header>
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead><tr><th scope="col">Cupom</th><th scope="col">Valor</th><th scope="col">Periodo</th><th scope="col">Origem</th><th scope="col">Acoes</th></tr></thead>
+        <tbody>
+          {% for a in aplicacoes %}
+            <tr>
+              <td>{{ a.coupon.name }}</td>
+              <td>{{ a.coupon.value_display }}</td>
+              <td>{{ a.period_display }}</td>
+              <td>{{ a.get_origin_display }}</td>
+              <td>
+                <form method="post" action="{% url 'cupons:assignment_delete' a.pk %}"
+                      data-confirmar="Remover a aplicação do cupom {{ a.coupon.name }}?">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="botao botao--perigo botao--pequeno">Remover</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="tabela__vazio">Nenhum cupom vigente neste mes.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cartao cartao--tabela" aria-labelledby="c-historico">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-historico">{% texto "cupons.cliente_detalhe.historico_titulo" %}</h2></header>
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead><tr><th scope="col">Cupom</th><th scope="col">Modo</th><th scope="col">Periodo</th><th scope="col">Situacao</th></tr></thead>
+        <tbody>
+          {% for a in historico %}
+            <tr>
+              <td>{{ a.coupon.name }}</td>
+              <td>{{ a.get_mode_display }}</td>
+              <td>{{ a.period_display }}</td>
+              <td>{% if a.is_active %}Ativa{% else %}Inativa{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="tabela__vazio">Nenhuma aplicacao registrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cartao cartao--tabela" aria-labelledby="c-cobrancas">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-cobrancas">{% texto "cupons.cliente_detalhe.cobrancas_titulo" %}</h2></header>
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead><tr><th scope="col">Mes</th><th scope="col">Valor final</th><th scope="col">Vencimento</th><th scope="col">Situacao</th><th scope="col">Acoes</th></tr></thead>
+        <tbody>
+          {% for c in cobrancas %}
+            <tr>
+              <td>{{ c.reference_month|date:"m/Y" }}</td>
+              <td>{{ c.final_amount|moeda }}</td>
+              <td>{{ c.due_date|date:"d/m/Y"|default:"—" }}</td>
+              <td><span class="tag-status {{ c.status_badge_class }}">{{ c.get_status_display }}</span></td>
+              <td><a class="botao botao--suave botao--pequeno" href="{% url 'cupons:charge_edit' c.pk %}">Editar</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="tabela__vazio">Nenhuma cobranca gerada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cartao" aria-labelledby="c-perigo">
+    <header class="cartao__cabecalho"><h2 class="cartao__titulo" id="c-perigo">{% texto "cupons.cliente_detalhe.excluir_titulo" %}</h2></header>
+    <form method="post" action="{% url 'cupons:customer_delete' cliente.pk %}"
+          data-confirmar="Excluir o cliente {{ cliente.full_name }}? Aplicações e cobranças dele também serão removidas.">
+      {% csrf_token %}
+      <button type="submit" class="botao botao--perigo">Excluir cliente</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block js_extra %}<script src="{% static 'email_marketing/email_marketing.js' %}" defer></script>{% endblock %}

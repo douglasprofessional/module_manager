@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Confirmação de exclusão (post, categoria ou tag) — gestão interna.
+
+Contexto (das views ``*_delete``): ``objeto`` (o registro), ``tipo`` (rótulo) e
+``url_cancelar`` (name para voltar). A exclusão efetiva-se via POST/CSRF.
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'blog/blog.css' %}">{% endblock %}
+
+{% block titulo %}{% texto "blog.confirmar_exclusao.titulo" %}{% endblock %}
+{% block subtitulo %}{% texto "blog.confirmar_exclusao.subtitulo" %}{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao" style="max-width: 560px;">
+    <p>Tem certeza de que deseja excluir {{ tipo }}
+      <strong>“{{ objeto }}”</strong>?</p>
+    <form class="formulario" method="post">
+      {% csrf_token %}
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--perigo">
+          {% include "parciais/_icones.html" with nome_icone="lixeira" only %}
+          <span>Sim, excluir</span>
+        </button>
+        <a class="botao botao--suave" href="{% url url_cancelar %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

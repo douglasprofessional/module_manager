@@ -1,0 +1,48 @@
+{% load blog_extras %}
+{% comment %}
+Painel de validação SEO/GEO/A11y renderizado no servidor. É espelhado ao vivo
+pelo ``static/blog/validator.js`` (que gera o mesmo HTML via AJAX). Recebe:
+``report`` (dict de ``run_validation``) e ``dims`` ([(chave, rótulo), ...]).
+{% endcomment %}
+{% if report and report.seo %}
+  {% if report.blocking_issues %}
+    <div class="val-block" role="alert">
+      <strong>Bloqueios para publicar:</strong> {{ report.blocking_issues|join:", " }}
+    </div>
+  {% else %}
+    <div class="val-ok" role="status">Sem bloqueios — pronto para publicar.</div>
+  {% endif %}
+
+  <div class="val-scores">
+    <div class="val-score val-score--{{ report.seo.rating }}">
+      <span class="val-score__num">{{ report.seo.score }}</span><span class="val-score__label">SEO</span>
+    </div>
+    <div class="val-score val-score--{{ report.geo.rating }}">
+      <span class="val-score__num">{{ report.geo.score }}</span><span class="val-score__label">GEO</span>
+    </div>
+    <div class="val-score val-score--{{ report.accessibility.rating }}">
+      <span class="val-score__num">{{ report.accessibility.score }}</span><span class="val-score__label">A11y</span>
+    </div>
+  </div>
+
+  {% for dim, title in dims %}
+    {% with group=report|get_item:dim %}
+    <details class="val-group" {% if group.failed %}open{% endif %}>
+      <summary>
+        {{ title }}
+        <span class="val-group__stat">✓{{ group.passed }} !{{ group.warnings }} ✕{{ group.failed }}</span>
+      </summary>
+      <ul class="check-list">
+        {% for c in group.checks %}
+          <li class="check check--{{ c.status }}">
+            <span class="check__icon" aria-hidden="true">{{ c.status|status_icon }}</span>
+            <span class="check__text"><strong>{{ c.label }}</strong><br><small>{{ c.message }}</small></span>
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endwith %}
+  {% endfor %}
+{% else %}
+  <p class="val-empty">Clique em <strong>“Validar agora”</strong> ou salve o post para ver a análise de SEO, GEO e acessibilidade.</p>
+{% endif %}

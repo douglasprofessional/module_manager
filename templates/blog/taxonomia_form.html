@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static nucleo_extras %}
+{% comment %}
+Formulário de criação/edição de categoria ou tag (gestão interna).
+
+Contexto (das views ``category_edit`` / ``tag_edit``): ``form``, ``is_new``,
+``tipo`` ("categoria"|"tag") e ``url_lista`` (name da lista para voltar).
+{% endcomment %}
+
+{% block css_extra %}<link rel="stylesheet" href="{% static 'blog/blog.css' %}">{% endblock %}
+
+{% block titulo %}{% if is_new %}{% texto "blog.taxonomia_form.titulo_novo" tipo=tipo %}{% else %}{% texto "blog.taxonomia_form.titulo_editar" tipo=tipo %}{% endif %}{% endblock %}
+{% block subtitulo %}{% texto "blog.taxonomia_form.subtitulo" %}{% endblock %}
+
+{% block acoes_topo %}
+  <a class="botao botao--suave" href="{% url url_lista %}">
+    {% include "parciais/_icones.html" with nome_icone="seta-esquerda" only %}
+    <span>Voltar</span>
+  </a>
+{% endblock %}
+
+{% block conteudo %}
+<div class="painel">
+  <section class="cartao" style="max-width: 640px;">
+    <form class="formulario" method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="mensagem mensagem--error" role="alert">
+          {% for erro in form.non_field_errors %}<span class="mensagem__texto">{{ erro }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="campo-grupo">
+          <label class="rotulo" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="ajuda-campo">{{ field.help_text|safe }}</p>{% endif %}
+          {% for erro in field.errors %}<p class="erro-campo">{{ erro }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="form-acoes">
+        <button type="submit" class="botao botao--primario">Salvar</button>
+        <a class="botao botao--suave" href="{% url url_lista %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% load static nucleo_extras %}
+<!doctype html>
+<html lang="pt-br" data-tema="{{ tema_atual|default:'claro' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  {# A tag <title> não pode conter o mesmo {% block %} do <h1> (o Django proíbe   #}
+  {# blocos repetidos). O bloco canônico 'titulo' fica no <h1> (renderizado no    #}
+  {# servidor, funciona sem JS) e o dashboard.js espelha esse texto em            #}
+  {# document.title. Aqui fica apenas um título padrão para o carregamento.       #}
+  <title>{{ site_nome }}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  {# Fontes: Staatliches (títulos) + Inter (demais textos). #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Staatliches&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  {% block css_extra %}{% endblock %}
+</head>
+<body class="app" data-site="{{ site_nome }}" data-inatividade="{{ sessao_inatividade_segundos|default:600 }}" data-url-login="{{ url_login }}">
+  <a class="pular-para-conteudo" href="#conteudo-principal">{% texto "geral.pular_conteudo" %}</a>
+
+  {% include "parciais/_sidebar.html" %}
+
+  {# Fundo escurecido que fecha o menu no mobile. #}
+  <div class="overlay-menu" data-fechar-menu hidden></div>
+
+  <div class="area">
+    {% include "parciais/_topbar.html" %}
+
+    <main class="conteudo" id="conteudo-principal">
+      {% if messages %}
+        <div class="mensagens" role="status" aria-live="polite">
+          {% for mensagem in messages %}
+            <div class="mensagem mensagem--{{ mensagem.tags|default:'info' }}">
+              <span class="mensagem__texto">{{ mensagem }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="cabecalho-pagina">
+        <div class="cabecalho-pagina__texto">
+          <h1 class="cabecalho-pagina__titulo" data-titulo-pagina>{% block titulo %}{% texto "nucleo.dashboard.titulo" %}{% endblock %}</h1>
+          {% block subtitulo_wrap %}<p class="cabecalho-pagina__subtitulo">{% block subtitulo %}{% endblock %}</p>{% endblock %}
+        </div>
+        <div class="cabecalho-pagina__acoes">
+          {% block acoes_topo %}{% endblock %}
+        </div>
+      </div>
+
+      {% block conteudo %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{% static 'js/dashboard.js' %}" defer></script>
+  {% block js_extra %}{% endblock %}
+</body>
+</html>
