@@ -281,6 +281,8 @@ if not DEBUG:
     SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
     SESSION_EXPIRE_AT_BROWSER_CLOSE = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
 
 # ---------------------------------------------------------------------------
 # Logging
